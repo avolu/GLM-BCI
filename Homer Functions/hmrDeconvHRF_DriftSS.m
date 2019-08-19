@@ -1,7 +1,7 @@
 % [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, R] =
 % hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect )
 %
-% UI NAME: 
+% UI NAME:
 % GLM_HRF_Drift_SS
 %
 % This script estimates the HRF with options to specify the temporal basis
@@ -35,33 +35,33 @@
 %                with a square-wave of duration T. Set T=0 for no convolution.
 %			 4-  GAM function from 3dDeconvolve AFNI convolved with
 %                a square-wave of duration T. Set T=0 for no convolution.
-% 			         (t/(p*q))^p * exp(p-t/q) 
-%                Defaults: p=8.6 q=0.547 
+% 			         (t/(p*q))^p * exp(p-t/q)
+%                Defaults: p=8.6 q=0.547
 %                The peak is at time p*q.  The FWHM is about 2.3*sqrt(p)*q.
 % paramsBasis - Parameters for the basis function depends on idxBasis
 %               idxBasis=1 - [stdev step] where stdev is the width of the
 %                  gaussian and step is the temporal spacing between
 %                  consecutive gaussians
 %               idxBasis=2 - [tau sigma T] applied to both HbO and HbR
-%                  or [tau1 sigma1 T1 tau2 sigma2 T2] 
+%                  or [tau1 sigma1 T1 tau2 sigma2 T2]
 %                  where the 1 (2) indicates the parameters for HbO (HbR).
 %               idxBasis=3 - [tau sigma T] applied to both HbO and HbR
-%                  or [tau1 sigma1 T1 tau2 sigma2 T2] 
+%                  or [tau1 sigma1 T1 tau2 sigma2 T2]
 %                  where the 1 (2) indicates the parameters for HbO (HbR).
 %               idxBasis=4 - [p q T] applied to both HbO and HbR
-%                  or [p1 q1 T1 p2 q2 T2] 
+%                  or [p1 q1 T1 p2 q2 T2]
 %                  where the 1 (2) indicates the parameters for HbO (HbR).
 % rhoSD_ssThresh - max distance for a short separation measurement. Set =0
 %          if you do not want to regress the short separation measurements.
-%          Follows the static estimate procedure described in Gagnon et al (2011). 
+%          Follows the static estimate procedure described in Gagnon et al (2011).
 %          NeuroImage, 56(3), 1362?1371.
-% flagSSmethod - 0 if short separation regression is performed with the nearest 
+% flagSSmethod - 0 if short separation regression is performed with the nearest
 %               short separation channel.
-%            1 if performed with the short separation channel with the 
-%               greatest correlation. 
+%            1 if performed with the short separation channel with the
+%               greatest correlation.
 %            2 if performed with average of all short separation channels.
 % driftOrder - Polynomial drift correction of this order
-% flagMotionCorrect - set to 1 to baseline correct between motion epochs indicated in tIncAuto, otherwise set to 0 
+% flagMotionCorrect - set to 1 to baseline correct between motion epochs indicated in tIncAuto, otherwise set to 0
 %
 % gstd - std for gaussian shape temporal basis function (sec)
 % gms - mean for gaussian shape temporal basis function (sec)
@@ -77,7 +77,7 @@
 % ysum2 - an intermediate matrix for calculating stdev across runs
 % beta - the coefficients of the temporal basis function fit for the HRF
 %           (#coefficients x HbX x #Channels x #conditions)
-% R - the correlation coefficient of the GLM fit to the data 
+% R - the correlation coefficient of the GLM fit to the data
 %     (#Channels x HbX)
 %
 % LOG:
@@ -90,7 +90,7 @@ nPre = round(trange(1)/dt);
 nPost = round(trange(2)/dt);
 nTpts = size(y,1);
 tHRF = (1*nPre*dt:dt:nPost*dt)';
-ntHRF=length(tHRF);    
+ntHRF=length(tHRF);
 nT=length(t);
 if isempty(tIncAuto); tIncAuto = ones(size(t)); end
 
@@ -137,7 +137,7 @@ else
         cc(:,:,2) = dc'*dc / length(dc);
         
         clear dc
-
+        
         % find short separation channel with highest correlation
         for iML = 1:size(cc,1)
             % HbO
@@ -151,7 +151,7 @@ else
     elseif flagSSmethod==2 % use average of all active SS as regressor
         mlSSlst = 1;
     end
-
+    
 end
 
 %%%%%%%%%%%%%%%%
@@ -184,17 +184,17 @@ if idxBasis==1
         tbasis(:,b)=exp(-(tHRF-(trange(1)+b*gms)).^2/(2*gstd.^2));
         tbasis(:,b)=tbasis(:,b)./max(tbasis(:,b)); %normalize to 1
     end
-
+    
 elseif idxBasis==2
-    % Modified Gamma 
+    % Modified Gamma
     if length(paramsBasis)==3
         nConc = 1;
     elseif length(paramsBasis)==6
         nConc = 2;
     end
-
+    
     nB = 1;
-    tbasis=zeros(ntHRF,nB,nConc);    
+    tbasis=zeros(ntHRF,nB,nConc);
     for iConc = 1:nConc
         tau = paramsBasis((iConc-1)*3+1);
         sigma = paramsBasis((iConc-1)*3+2);
@@ -223,21 +223,21 @@ elseif idxBasis==3
     elseif length(paramsBasis)==6
         nConc = 2;
     end
-
+    
     nB = 2;
-    tbasis=zeros(ntHRF,nB,nConc);    
+    tbasis=zeros(ntHRF,nB,nConc);
     for iConc = 1:nConc
         tau = paramsBasis((iConc-1)*3+1);
         sigma = paramsBasis((iConc-1)*3+2);
         T = paramsBasis((iConc-1)*3+3);
-    
+        
         tbasis(:,1,iConc) = (exp(1)*(tHRF-tau).^2/sigma^2) .* exp( -(tHRF-tau).^2/sigma^2 );
         tbasis(:,2,iConc) = 2*exp(1)*( (tHRF-tau)/sigma^2 - (tHRF-tau).^3/sigma^4 ) .* exp( -(tHRF-tau).^2/sigma^2 );
-    
+        
         if tHRF(1)<tau
             tbasis(1:round((tau-tHRF(1))/dt),1:2,iConc) = 0;
         end
-    
+        
         if T>0
             for ii=1:nB
                 foo = conv(tbasis(:,ii,iConc),ones(round(T/dt),1)) / round(T/dt);
@@ -253,45 +253,76 @@ elseif idxBasis==4
     elseif length(paramsBasis)==6
         nConc = 2;
     end
-
-	nB=1;
-    tbasis=zeros(ntHRF,nB,nConc);    
+    
+    nB=1;
+    tbasis=zeros(ntHRF,nB,nConc);
     for iConc = 1:nConc
-
+        
         p = paramsBasis((iConc-1)*3+1);
         q = paramsBasis((iConc-1)*3+2);
         T = paramsBasis((iConc-1)*3+3);
-    
+        
         tbasis(:,1,iConc)=(tHRF/(p*q)).^p.* exp(p-tHRF/q);
-
+        
         if T>0
             foo = conv(tbasis(:,1,iConc),ones(round(T/dt),1)) / round(T/dt);
             tbasis(:,1,iConc) = foo(1:ntHRF,1);
         end
     end
     
+    
+elseif idxBasis==5 % individualized basis function for each channel from a previously estimate HRF
+    nConc = 2; % HbO and HbR separate basis
+    nB = 1;
+    tbasis=zeros(size(paramsBasis,3),ntHRF,nB,nConc);  % # of channels X tHRF X # of weights X # of conc
+    for iConc = 1:nConc
+        for iCh = 1:size(paramsBasis,3)
+            tbasis(iCh,:,1,iConc) = paramsBasis(:,iConc,iCh);
+        end
+    end
+    
 end
 
-    
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%construct design matrix    
+%construct design matrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dA=zeros(nT,nB*nCond,2);
-for iConc = 1:2
-    iC = 0;
-    for iCond=1:nCond
-        for b=1:nB
-            iC = iC + 1;
-            if size(tbasis,3)==1
-                clmn=conv(onset(:,iCond),tbasis(:,b));
-            else
-                clmn=conv(onset(:,iCond),tbasis(:,b,iConc));
+if idxBasis ~= 5
+    dA=zeros(nT,nB*nCond,2);
+    for iConc = 1:2
+        iC = 0;
+        for iCond=1:nCond
+            for b=1:nB
+                iC = iC + 1;
+                if size(tbasis,3)==1
+                    clmn=conv(onset(:,iCond),tbasis(:,b));
+                else
+                    clmn=conv(onset(:,iCond),tbasis(:,b,iConc));
+                end
+                clmn=clmn(1:nT);
+                dA(:,iC,iConc)=clmn;
             end
-            clmn=clmn(1:nT);
-            dA(:,iC,iConc)=clmn;
+        end
+    end
+elseif idxBasis == 5
+    dA=zeros(nT,nB*nCond,2,size(paramsBasis,3));
+    for iConc = 1:2
+        for iCh = 1:size(paramsBasis,3)
+            iC = 0;
+            for iCond=1:nCond
+                for b=1:nB
+                    iC = iC + 1;
+                    clmn=conv(onset(:,iCond),squeeze(tbasis(iCh,:,b,iConc))');
+                    clmn=clmn(1:nT);
+                    dA(:,iC,iConc,iCh)=clmn;
+                end
+            end
         end
     end
 end
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %expand design matrix nth order polynomial for drift correction
@@ -327,11 +358,11 @@ if flagMotionCorrect==1
         Amotion((idxMA(nMA)+1):end,end) = 1;
     end
     
-%    lstInc = find(tIncAuto==1);
+    %    lstInc = find(tIncAuto==1);
 else
     nMC = 0;
     Amotion = [];
-%    lstInc = [1:nT]';
+    %    lstInc = [1:nT]';
 end
 
 lstInc = find(tIncAuto==1);
@@ -340,9 +371,19 @@ lstInc = find(tIncAuto==1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %final design matrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for iConc=1:2
-    A(:,:,iConc)=[dA(:,:,iConc) xDrift Aaux Amotion]; 
+if idxBasis ~= 5
+    for iConc=1:2
+        A(:,:,iConc)=[dA(:,:,iConc) xDrift Aaux Amotion];
+    end
+elseif idxBasis == 5
+    for iConc=1:2
+        for iCh = 1:size(paramsBasis,3)
+            A(:,:,iConc,iCh)=[dA(:,:,iConc,iCh) xDrift Aaux Amotion];
+        end
+    end
 end
+
+
 
 nCh = size(y,3);
 
@@ -355,7 +396,7 @@ if length(lstInc)<3*size(A,2) | nCond==0
     ysum2=zeros(ntHRF,nCh,3,nCond);
     yresid=zeros(nT,3,nCh);
     ynew=zeros(nT,3,nCh);
-
+    
     yavg = permute(yavg,[1 3 2 4]);
     yavgstd = permute(yavgstd,[1 3 2 4]);
     ysum2 = permute(ysum2,[1 3 2 4]);
@@ -384,77 +425,126 @@ for conc=1:2 %only HbO and HbR
     if flagSSmethod==1 & ~isempty(lstSS) %rhoSD_ssThresh>0
         mlSSlst = unique(iNearestSS(:,conc));
     end
-
-    
     
     % loop over short separation groups
     for iSS = 1:length(mlSSlst)
         
-        lstMLtmp = find(ml(:,4)==1);
-        if mlSSlst(iSS)==0
-            lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
-            % lstML = 1:size(y,3);
-            At = A(:,:,conc);
-        elseif flagSSmethod==0
-            lstML = find(iNearestSS(:)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
-            % lstML = find(iNearestSS==mlSSlst(iSS));
-            Ass = y(:,conc,mlSSlst(iSS));
-            At = [A(:,:,conc) Ass];
-        elseif flagSSmethod==1
-            lstML = find(iNearestSS(:,conc)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
-            % lstML = find(iNearestSS(:,conc)==mlSSlst(iSS));
-            Ass = y(:,conc,mlSSlst(iSS));
-            At = [A(:,:,conc) Ass];
-        elseif flagSSmethod==2
-            lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
-            % lstML = 1:size(y,3);
-            Ass = mean(y(:,conc,lstSS),3);
-            At = [A(:,:,conc) Ass];
+        if idxBasis ~= 5
+            lstMLtmp = find(ml(:,4)==1);
+            if mlSSlst(iSS)==0
+                lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
+                % lstML = 1:size(y,3);
+                At = A(:,:,conc);
+            elseif flagSSmethod==0
+                lstML = find(iNearestSS(:)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
+                % lstML = find(iNearestSS==mlSSlst(iSS));
+                Ass = y(:,conc,mlSSlst(iSS));
+                At = [A(:,:,conc) Ass];
+            elseif flagSSmethod==1
+                lstML = find(iNearestSS(:,conc)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
+                % lstML = find(iNearestSS(:,conc)==mlSSlst(iSS));
+                Ass = y(:,conc,mlSSlst(iSS));
+                At = [A(:,:,conc) Ass];
+            elseif flagSSmethod==2
+                lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
+                % lstML = 1:size(y,3);
+                Ass = mean(y(:,conc,lstSS),3);
+                At = [A(:,:,conc) Ass];
+            end
+        elseif idxBasis == 5
+            lstMLtmp = find(ml(:,4)==1);
+            if mlSSlst(iSS)==0
+                lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
+                % lstML = 1:size(y,3);
+                At = A(:,:,conc,:); % DOUBLE CHECK THIS PART FOR TCCA
+            elseif flagSSmethod==0
+                lstML = find(iNearestSS(:)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
+                % lstML = find(iNearestSS==mlSSlst(iSS));
+                Ass = y(:,conc,mlSSlst(iSS));
+                At = [A(:,:,conc,:) Ass];
+            elseif flagSSmethod==1
+                lstML = find(iNearestSS(:,conc)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
+                % lstML = find(iNearestSS(:,conc)==mlSSlst(iSS));
+                Ass = y(:,conc,mlSSlst(iSS));
+                for i=1:size(lstML); % adding A ss on the channels that have highest corr with it.
+                    At(:,:,lstML(i)) = [A(:,:,conc,lstML(i)) Ass];
+                end
+            elseif flagSSmethod==2
+                lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
+                % lstML = 1:size(y,3);
+                Ass = mean(y(:,conc,lstSS),3);
+                At = [A(:,:,conc,:) Ass];
+            end
         end
+        
+        
+        
         
         if ~isempty(lstML)
             
-            %tcheck if the matrix is well conditionned
-            ATA=At(lstInc,:)'*At(lstInc,:);
-            rco=rcond(full(ATA));
-            if rco<10^-14 && rco>10^-25
-                display(sprintf('Design matrix is poorly scaled...(RCond=%e)', rco))
-            elseif rco<10^-25
-                display(sprintf('Design matrix is VERY poorly scaled...(RCond=%e), cannot perform computation', rco))
-                yavg = permute(yavg,[1 3 2 4]);
-                yavgstd = permute(yavgstd,[1 3 2 4]);
-                ysum2 = permute(ysum2,[1 3 2 4]);
-                ynew = y;
-                yresid = zeros(size(y));
+            
+            if idxBasis ~= 5
+                ATA=At(lstInc,:)'*At(lstInc,:);
+            elseif idxBasis == 5
+                %                 for iCh = 1:size(paramsBasis,3)
+                for i=1:size(lstML);
+                    ATA(:,:,lstML(i))=At(lstInc,:,lstML(i))'*At(lstInc,:,lstML(i));
+                end
+                %                 end
                 
-                foo = nTrials;
-                nTrials = zeros(1,size(s,2));
-                nTrials(lstCond) = foo;
-                
-                foo = yavg;
-                yavg = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
-                yavg(:,:,:,lstCond) = foo;
-                
-                foo = yavgstd;
-                yavgstd = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
-                yavgstd(:,:,:,lstCond) = foo;
-                
-                foo = ysum2;
-                ysum2 = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
-                ysum2(:,:,:,lstCond) = foo;
-                
-                beta = [];
-                
-                return
             end
+            
+            
+            % % % %             %tcheck if the matrix is well conditionned
+            % % % %             rco=rcond(full(ATA));
+            % % % %             if rco<10^-14 && rco>10^-25
+            % % % %                 display(sprintf('Design matrix is poorly scaled...(RCond=%e)', rco))
+            % % % %             elseif rco<10^-25
+            % % % %                 display(sprintf('Design matrix is VERY poorly scaled...(RCond=%e), cannot perform computation', rco))
+            % % % %                 yavg = permute(yavg,[1 3 2 4]);
+            % % % %                 yavgstd = permute(yavgstd,[1 3 2 4]);
+            % % % %                 ysum2 = permute(ysum2,[1 3 2 4]);
+            % % % %                 ynew = y;
+            % % % %                 yresid = zeros(size(y));
+            % % % %
+            % % % %                 foo = nTrials;
+            % % % %                 nTrials = zeros(1,size(s,2));
+            % % % %                 nTrials(lstCond) = foo;
+            % % % %
+            % % % %                 foo = yavg;
+            % % % %                 yavg = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
+            % % % %                 yavg(:,:,:,lstCond) = foo;
+            % % % %
+            % % % %                 foo = yavgstd;
+            % % % %                 yavgstd = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
+            % % % %                 yavgstd(:,:,:,lstCond) = foo;
+            % % % %
+            % % % %                 foo = ysum2;
+            % % % %                 ysum2 = zeros(size(foo,1),size(foo,2),size(foo,3),size(s,2));
+            % % % %                 ysum2(:,:,:,lstCond) = foo;
+            % % % %
+            % % % %                 beta = [];
+            
+            % % % %                 return
+            % % % %             end
             
             %compute pseudo-inverse and deconvolve
             %        flagUseTed = 1;
             if glmSolveMethod==1 % ~flagUseTed
-                pinvA=ATA\At(lstInc,:)';
-                foo = [];
-                ytmp = y(lstInc,conc,lstML);
-                foo(:,lstML,conc)=pinvA*squeeze(ytmp);
+                if idxBasis ~= 5
+                    pinvA=ATA\At(lstInc,:)';
+                    foo = [];
+                    ytmp = y(lstInc,conc,lstML);
+                    foo(:,lstML,conc)=pinvA*squeeze(ytmp);
+                elseif idxBasis == 5
+                    foo = [];
+                    for i = 1:size(lstML,1)
+                        pinvA=ATA(:,:,lstML(i))\At(lstInc,:,lstML(i))';
+                        %                                  ytmp = y(lstInc,conc,lstML);
+                        foo(:,lstML(i),conc)=pinvA*squeeze(y(lstInc,conc,lstML(i)));
+                    end
+                    
+                end
             elseif glmSolveMethod==2
                 % Use the iWLS code from Barker et al
                 foo = [];
@@ -474,60 +564,108 @@ for conc=1:2 %only HbO and HbR
             end
             
             %solution
-            for iCond=1:nCond
-                tb(:,lstML,conc,iCond)=foo([1:nB]+(iCond-1)*nB,lstML,conc);
-                %                yavg(:,lstML,conc,lstCond(iCond))=tbasis*tb(:,lstML,conc,lstCond(iCond));
-                if size(tbasis,3)==1
-                    yavg(:,lstML,conc,iCond)=tbasis*tb(:,lstML,conc,iCond);
-                else
-                    yavg(:,lstML,conc,iCond)=tbasis(:,:,conc)*tb(:,lstML,conc,iCond);
+            if idxBasis ~= 5
+                for iCond=1:nCond
+                    tb(:,lstML,conc,iCond)=foo([1:nB]+(iCond-1)*nB,lstML,conc);
+                    %                yavg(:,lstML,conc,lstCond(iCond))=tbasis*tb(:,lstML,conc,lstCond(iCond));
+                    if size(tbasis,3)==1
+                        yavg(:,lstML,conc,iCond)=tbasis*tb(:,lstML,conc,iCond);
+                    else
+                        yavg(:,lstML,conc,iCond)=tbasis(:,:,conc)*tb(:,lstML,conc,iCond);
+                    end
+                end
+            elseif idxBasis == 5
+                for iCond=1:nCond
+                    %                 tb(:,lstML,conc,iCond)=foo([1:nB]+(iCond-1)*nB,lstML,conc);
+                    %                yavg(:,lstML,conc,lstCond(iCond))=tbasis*tb(:,lstML,conc,lstCond(iCond));
+                    for i = 1:size(lstML,1)
+                        yavg(:,lstML(i),conc,iCond)=tbasis(lstML(i),:,:,conc)*foo([1:nB]+(iCond-1)*nB,lstML(i),conc);
+                    end
+                    
                 end
             end
             
-            % reconstruct y and yresid (y is obtained just from the HRF)
-            % and R
-            yresid(lstInc,conc,lstML) = ytmp - permute(At(lstInc,:)*foo(:,lstML,conc),[1 3 2]);
-            ynew(lstInc,conc,lstML) = permute(dA(lstInc,:,conc)*foo(1:(nB*nCond),lstML,conc),[1 3 2]) + yresid(lstInc,conc,lstML);
             
-            yfit = permute(At(lstInc,:)*foo(:,lstML,conc),[1 3 2]);
-            for iML=1:length(lstML)
-                yRtmp = corrcoef(ytmp(:,1,iML),yfit(:,1,iML));
-                yR(lstML(iML),conc) = yRtmp(1,2);
-            end
-            
-            %get error
-            if glmSolveMethod==1 %  OLS  ~flagUseTed
-                pAinvAinvD = diag(pinvA*pinvA');
-                yest(:,lstML,conc) = At * foo(:,lstML,conc);
-                yvar(1,lstML,conc) = std(squeeze(y(:,conc,lstML))-yest(:,lstML,conc),[],1).^2; % check this against eq(53) in Ye2009
-                for iCh = 1:length(lstML)
-                    bvar(:,lstML(iCh),conc) = yvar(1,lstML(iCh),conc) * pAinvAinvD;
+            % reconstruct y and yresid (y is obtained just from the HRF  get error
+            if idxBasis ~= 5
+                
+                yresid(lstInc,conc,lstML) = ytmp - permute(At(lstInc,:)*foo(:,lstML,conc),[1 3 2]);
+                ynew(lstInc,conc,lstML) = permute(dA(lstInc,:,conc)*foo(1:(nB*nCond),lstML,conc),[1 3 2]) + yresid(lstInc,conc,lstML);
+                yfit = permute(At(lstInc,:)*foo(:,lstML,conc),[1 3 2]);
+                for iML=1:length(lstML)
+                    yRtmp = corrcoef(ytmp(:,1,iML),yfit(:,1,iML));
+                    yR(lstML(iML),conc) = yRtmp(1,2);
+                end
+                if glmSolveMethod==1 %  OLS  ~flagUseTed
+                    pAinvAinvD = diag(pinvA*pinvA');
+                    yest(:,lstML,conc) = At * foo(:,lstML,conc);
+                    yvar(1,lstML,conc) = std(squeeze(y(:,conc,lstML))-yest(:,lstML,conc),[],1).^2; % check this against eq(53) in Ye2009
+                    for iCh = 1:length(lstML)
+                        bvar(:,lstML(iCh),conc) = yvar(1,lstML(iCh),conc) * pAinvAinvD;
+                        for iCond=1:nCond
+                            %                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
+                            if size(tbasis,3)==1
+                                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
+                            else
+                                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis(:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis(:,:,conc)').^0.5;
+                            end
+                            ysum2(:,lstML(iCh),conc,iCond) = yavgstd(:,lstML(iCh),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(iCh),conc,iCond).^2;
+                        end
+                    end
+                    
+                elseif glmSolveMethod==2  % WLS
+                    
+                    yest(:,lstML,conc) = At * foo(:,lstML,conc);
+                    for iCh = 1:length(lstML)
+                        for iCond=1:nCond
+                            if size(tbasis,3)==1
+                                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
+                            else
+                                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis(:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis(:,:,conc)').^0.5;
+                            end
+                            ysum2(:,lstML(iCh),conc,iCond) = yavgstd(:,lstML(iCh),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(iCh),conc,iCond).^2;
+                        end
+                    end
+                    
+                end
+                
+                
+            elseif idxBasis == 5  % and for OLS
+                
+                %############################
+                %reconstruct y and yresid (y is obtained just from the HRF) and R
+                for i = 1:size(lstML,2)
+                    yresid(lstInc,conc,lstML(i)) = y(lstInc,conc,lstML(i)) - permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]);
+                    ynew(lstInc,conc,lstML(i)) = permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]) + yresid(lstInc,conc,lstML(i));
+                    yfit = permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]);
+                    
+                    %             for iML=1:length(lstML)
+                    yRtmp = corrcoef(y(lstInc,conc,lstML(i)),yfit);
+                    yR(lstML(i),conc) = yRtmp(1,2);
+                    %             end
+                    pAinvAinvD = diag(pinvA*pinvA');
+                    yest(:,lstML(i),conc) = At(:,:,lstML(i)) * foo(:,lstML(i),conc);
+                    yvar(1,lstML(i),conc) = std(squeeze(y(:,conc,lstML(i)))-yest(:,lstML(i),conc),[],1).^2; % check this against eq(53) in Ye2009
+                    
+                    bvar(:,lstML(i),conc) = yvar(1,lstML(i),conc) * pAinvAinvD;
                     for iCond=1:nCond
                         %                yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
                         if size(tbasis,3)==1
-                            yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
+                            yavgstd(:,lstML(i),conc,iCond) = diag(tbasis(lstML(i),:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(i),conc))*tbasis(lstML(i),:,:,conc)').^0.5;
                         else
-                            yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis(:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis(:,:,conc)').^0.5;
+                            yavgstd(:,lstML(i),conc,iCond) = diag(tbasis(lstML(i),:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(i),conc))*tbasis(lstML(i),:,:,conc)').^0.5;
                         end
-                        ysum2(:,lstML(iCh),conc,iCond) = yavgstd(:,lstML(iCh),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(iCh),conc,iCond).^2;
+                        ysum2(:,lstML(i),conc,iCond) = yavgstd(:,lstML(i),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(i),conc,iCond).^2;
                     end
+                    
                 end
                 
-            elseif glmSolveMethod==2  % WLS
                 
-                yest(:,lstML,conc) = At * foo(:,lstML,conc);
-                for iCh = 1:length(lstML)
-                    for iCond=1:nCond
-                        if size(tbasis,3)==1
-                            yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis').^0.5;
-                        else
-                            yavgstd(:,lstML(iCh),conc,iCond) = diag(tbasis(:,:,conc)*diag(bvar([1:nB]+(iCond-1)*nB,lstML(iCh),conc))*tbasis(:,:,conc)').^0.5;
-                        end
-                        ysum2(:,lstML(iCh),conc,iCond) = yavgstd(:,lstML(iCh),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(iCh),conc,iCond).^2;
-                    end
-                end
+                %############################
+                
                 
             end
+            
             
         end % end loop on ~isempty(lstML)
         
