@@ -33,15 +33,17 @@ end
 
 %% All concentration features in muMol for better precision
 dat.x = dat.x*1e6;
+nchan = size(dat.x,3);
+
 for e=1:size(dat.x, 4)
     %% min
-    FV.x(1,:,:,e) = min(dat.x(:,:,:,e));
+    FV.x(1,:,1:nchan,e) = min(dat.x(:,:,:,e));
     %% max
-    FV.x(2,:,:,e) = max(dat.x(:,:,:,e));
+    FV.x(2,:,1:nchan,e) = max(dat.x(:,:,:,e));
     %% peak2peak
-    FV.x(3,:,:,e) = max(dat.x(:,:,:,e))-min(dat.x(:,:,:,e));
+    FV.x(3,:,1:nchan,e) = max(dat.x(:,:,:,e))-min(dat.x(:,:,:,e));
     %% avg
-    FV.x(4,:,:,e) = mean(dat.x(:,:,:,e));
+    FV.x(4,:,1:nchan,e) = mean(dat.x(:,:,:,e));
     for ch=1:size(dat.x,3)
         for c=1:size(dat.x,2)
             %% time2peak
@@ -61,19 +63,19 @@ for e=1:size(dat.x, 4)
             FV.x(5,c,ch,e) = dat.t(i);
             
             % verifying slope
-            if ch == 31
-               figure
-               plot(dat.t,squeeze(dat.x(:,c,ch,e)))
-            end
+            %             if ch == 31
+            %                figure
+            %                plot(dat.t,squeeze(dat.x(:,c,ch,e)))
+            %             end
             %% slope
             for ss=1:size(wdw,1)
                 p=polyfit(dat.t(wdw(ss,1):wdw(ss,2))', squeeze(dat.x(wdw(ss,1):wdw(ss,2),c,ch,e)),1);
                 FV.x(5+ss,c,ch,e)=p(1);
                 % verifying slope
-                if ch == 31
-                    hold on
-                plot(dat.t(wdw(ss,1):wdw(ss,2)), polyval(p, dat.t(wdw(ss,1):wdw(ss,2))))
-                end
+                %                 if ch == 31
+                %                     hold on
+                %                 plot(dat.t(wdw(ss,1):wdw(ss,2)), polyval(p, dat.t(wdw(ss,1):wdw(ss,2))))
+                %                 end
             end
         end
     end

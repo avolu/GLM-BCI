@@ -1,7 +1,7 @@
 clear all;
 
 % ##### FOLLOWING TWO LINES NEED CHANGE ACCORDING TO USER!
-malexflag = 1;
+malexflag = 0;
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -9,7 +9,7 @@ if malexflag
     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
 else
     %Alex
-    path.code = 'D:\Office\Research\Software - Scripts\Matlab\Regression tCCA GLM\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
     path.save = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER'; % save directory
 end
@@ -45,6 +45,16 @@ flags.pcaf =  [0 0]; % no pca of X or AUX
 flags.shrink = true;
 % perform regularized (rtcca) (alternatively old approach)
 rtccaflag = true;
+
+% Features/structs for feature extraction function
+fparam.swdw=[0,4;10,17]; % need to discuss this selection!
+ival = [eval_param.HRFmin eval_param.HRFmax];
+
+% get features from ground truth
+hrfdat.x = hrf.hrf_conc;
+hrfdat.fs=25;
+hrfdat.t=hrf.t_hrf';
+[FVgt] = featureExtract(hrfdat, fparam);
 
 %motion artifact detection
 motionflag = true;
@@ -162,7 +172,9 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
             [yavg_ss, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
             
-            
+            %% get features/markers               
+            [FMss, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
+                        
             %         %% Perform GLM with SS
             %         [yavg_ss, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
             %             hmrDeconvHRF_DriftSS(dc(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
@@ -228,6 +240,9 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
                         figure;subplot(1,3,1);plot(squeeze(a(:,1,lstLongAct)));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);
                         subplot(1,3,2);plot(squeeze(yavg_ss(:,1,lstLongAct))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);
                         subplot(1,3,3);plot(squeeze(yavg_cca(:,1,lstLongAct)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);
+                        
+                        
+                        
                         
                         
 %                         %% list of channels with stimulus
