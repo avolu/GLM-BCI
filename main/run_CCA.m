@@ -4,12 +4,12 @@ clear all;
 malexflag = 1;
 if malexflag
     %Meryem
-    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\tCCA-GLM'; addpath(genpath(path.code)); % code directory
+    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
 else
     %Alex
-    path.code = 'D:\Office\Research\Software - Scripts\Matlab\Regression tCCA GLM\tCCA-GLM'; addpath(genpath(path.code)); % code directory
+    path.code = 'D:\Office\Research\Software - Scripts\Matlab\Regression tCCA GLM\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
     path.save = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER'; % save directory
 end
@@ -71,7 +71,7 @@ tic;
 iterno = 1;
 totiter = numel(sbjfolder)*2*numel(tlags)*numel(stpsize)*numel(cthresh);
 
-for sbj =7%:numel(sbjfolder) % loop across subjects
+for sbj =1%:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -136,7 +136,7 @@ for sbj =7%:numel(sbjfolder) % loop across subjects
         onset_stim(1) = []; 
     end
     
-    for os = 1:size(onset_stim,1)%% loop around each stimulus
+    for os = 1%:size(onset_stim,1)%% loop around each stimulus
         
         pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
         post_stim = onset_stim(os)+eval_param.HRFmax*fq;
