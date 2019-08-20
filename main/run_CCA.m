@@ -71,7 +71,7 @@ tic;
 iterno = 1;
 totiter = numel(sbjfolder)*2*numel(tlags)*numel(stpsize)*numel(cthresh);
 
-for sbj =1% 1:numel(sbjfolder) % loop across subjects
+for sbj =7%:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -132,6 +132,10 @@ for sbj =1% 1:numel(sbjfolder) % loop across subjects
     
     %% run test and train CV splits
     onset_stim = find(s==1);
+    if onset_stim(1) < abs(eval_param.HRFmin*fq)
+        onset_stim(1) = []; 
+    end
+    
     for os = 1:size(onset_stim,1)%% loop around each stimulus
         
         pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
@@ -155,95 +159,96 @@ for sbj =1% 1:numel(sbjfolder) % loop across subjects
         %% Perform GLM with SS
         [yavg_ss, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
             hmrDeconvHRF_DriftSS(dc(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
-
-        figure;plot(squeeze(yavg_ss(:,1,:)))
-a=dc(pre_stim:post_stim,:,:);
-figure;plot(squeeze(a(:,1,:)))
-        %% CCA EVAL
-        for tl = tlags %loop across timelags
-            timelag = tl;
-            tlidx = tlidx+1;
-            
-            for sts = stpsize  %loop across stepsizes
-                stpidx = stpidx+1;
-                %% set stepsize for CCA
-                param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
-                param.NumOfEmb = ceil(timelag*fq / sts);
-                
-                %% Temporal embedding of auxiliary data from testing split
-                aux_sigs = AUX(tstIDX(pre_stim:post_stim),:);
-                aux_emb = aux_sigs;
-                for i=1:param.NumOfEmb
-                    aux=circshift( aux_sigs, i*param.tau, 1);
-                    aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                    aux_emb=[aux_emb aux];
-                end
-                
-                %zscore
-                aux_emb=zscore(aux_emb);
-                
-                %% set correlation trheshold for CCA to 0 so we dont lose anything here
-                param.ct = 0;   % correlation threshold
-                %% Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
-                % use test data of LD channels without synth HRF
-                X = d0_long(trnIDX,:);
-                if ~rtccaflag
-                    %% Old tCCA
-                    [REG_trn{tt},  ADD_trn{tt}] = perf_temp_emb_cca(X,AUX(trnIDX,:),param,flags);
-                else
-                    %% new tCCA with shrinkage
-                    [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
-                end
-                
-                for ctr = cthresh %loop across correlation thresholds
-                    ctidx = ctidx+1;
-                    disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
-                    
-                    %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
-                    % overwrite: auxiliary cca components that have
-                    % correlation > ctr
-                    compindex=find(ADD_trn{tt}.ccac>ctr);
-                    %overwrite: reduced mapping matrix Av
-                    ADD_trn{tt}.Av_red = ADD_trn{tt}.Av(:,compindex);
-                    
-                    %% Calculate testig regressors with CCA mapping matrix A from testing
-                    REG_tst = aux_emb*ADD_trn{tt}.Av_red;
-                    
-                    %% Perform GLM with CCA
-                    [yavg_cca, yavgstd_cca, tHRF, nTrials(tt,tlidx,stpidx,ctidx), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                        hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(tstIDX(pre_stim:post_stim),:), t(tstIDX(pre_stim:post_stim),:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], 0, 0, 0, 0);
-                    
-                    
-                    %                     %% list of channels with stimulus
-                    %                     lst_stim = find(s(tstIDX,:)==1);
-                    %                     if lst_stim(1) < abs(eval_param.HRFmin) * fq
-                    %                         lst_stim = lst_stim(2:end);
-                    %                     end
-                    %                     if size(s(tstIDX,:),1) < lst_stim(end) + abs(eval_param.HRFmax) * fq
-                    %                         lst_stim = lst_stim(1:end-1);
-                    %                     end
-                    %
-                    %
-                    %                     %% EVAL / PLOT
-                    %                     [DET_SS(:,:,tt,tlidx,stpidx,ctidx), DET_CCA(:,:,tt,tlidx,stpidx,ctidx), pval_SS(:,:,tt,tlidx,stpidx,ctidx), ...
-                    %                         pval_CCA(:,:,tt,tlidx,stpidx,ctidx), ROCLAB, MSE_SS(:,:,tt,tlidx,stpidx,ctidx), MSE_CCA(:,:,tt,tlidx,stpidx,ctidx), ...
-                    %                         CORR_SS(:,:,tt,tlidx,stpidx,ctidx), CORR_CCA(:,:,tt,tlidx,stpidx,ctidx)] = ...
-                    %                         results_eval(sbj, d_ss, d_cca, yavg_ss, yavg_cca, tHRF, timelag, sts, ctr, lst_stim, SD, fq, lstHrfAdd, lstLongAct, eval_param, flag_plot, path, hrf, flag_trial, nTrials(tt,tlidx,stpidx,ctidx));
-                    %                     % Dimensions of output metrics
-                    % #CH x 2(Hbo+HbR) x 2 (cv split) x tlag x stepsize x corrthres
-                    % old:  #CH x 2(Hbo+HbR) x 2 (cv split) x SBJ x tlag x stepsize x corrthres
-                    
-                    % display iterno
-                    disp(['iter #' num2str(iterno) ', sbj ' num2str(sbj) ', ' num2str(ceil(1000*iterno/(totiter))/10) '% done'])
-                    iterno = iterno+1;
-                end
-                % reset counter
-                ctidx =0;
-            end
-            % reset counter
-            stpidx =0;
-        end
+        yavg_ss_os(:,:,:,os) = yavg_ss;
         
+        figure;subplot(1,2,1);plot(squeeze(yavg_ss(:,1,:))); ylim([-1e-6 2e-6]);
+a=dc(pre_stim:post_stim,:,:);
+subplot(1,2,2);plot(squeeze(a(:,1,:)));ylim([-1e-6 2e-6]);
+%         %% CCA EVAL
+%         for tl = tlags %loop across timelags
+%             timelag = tl;
+%             tlidx = tlidx+1;
+%             
+%             for sts = stpsize  %loop across stepsizes
+%                 stpidx = stpidx+1;
+%                 %% set stepsize for CCA
+%                 param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+%                 param.NumOfEmb = ceil(timelag*fq / sts);
+%                 
+%                 %% Temporal embedding of auxiliary data from testing split
+%                 aux_sigs = AUX(tstIDX(pre_stim:post_stim),:);
+%                 aux_emb = aux_sigs;
+%                 for i=1:param.NumOfEmb
+%                     aux=circshift( aux_sigs, i*param.tau, 1);
+%                     aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+%                     aux_emb=[aux_emb aux];
+%                 end
+%                 
+%                 %zscore
+%                 aux_emb=zscore(aux_emb);
+%                 
+%                 %% set correlation trheshold for CCA to 0 so we dont lose anything here
+%                 param.ct = 0;   % correlation threshold
+%                 %% Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
+%                 % use test data of LD channels without synth HRF
+%                 X = d0_long(trnIDX,:);
+%                 if ~rtccaflag
+%                     %% Old tCCA
+%                     [REG_trn{tt},  ADD_trn{tt}] = perf_temp_emb_cca(X,AUX(trnIDX,:),param,flags);
+%                 else
+%                     %% new tCCA with shrinkage
+%                     [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
+%                 end
+%                 
+%                 for ctr = cthresh %loop across correlation thresholds
+%                     ctidx = ctidx+1;
+%                     disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
+%                     
+%                     %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
+%                     % overwrite: auxiliary cca components that have
+%                     % correlation > ctr
+%                     compindex=find(ADD_trn{tt}.ccac>ctr);
+%                     %overwrite: reduced mapping matrix Av
+%                     ADD_trn{tt}.Av_red = ADD_trn{tt}.Av(:,compindex);
+%                     
+%                     %% Calculate testig regressors with CCA mapping matrix A from testing
+%                     REG_tst = aux_emb*ADD_trn{tt}.Av_red;
+%                     
+%                     %% Perform GLM with CCA
+%                     [yavg_cca, yavgstd_cca, tHRF, nTrials(tt,tlidx,stpidx,ctidx), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
+%                         hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(tstIDX(pre_stim:post_stim),:), t(tstIDX(pre_stim:post_stim),:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], 0, 0, 0, 0);
+%                     
+%                     
+%                     %                     %% list of channels with stimulus
+%                     %                     lst_stim = find(s(tstIDX,:)==1);
+%                     %                     if lst_stim(1) < abs(eval_param.HRFmin) * fq
+%                     %                         lst_stim = lst_stim(2:end);
+%                     %                     end
+%                     %                     if size(s(tstIDX,:),1) < lst_stim(end) + abs(eval_param.HRFmax) * fq
+%                     %                         lst_stim = lst_stim(1:end-1);
+%                     %                     end
+%                     %
+%                     %
+%                     %                     %% EVAL / PLOT
+%                     %                     [DET_SS(:,:,tt,tlidx,stpidx,ctidx), DET_CCA(:,:,tt,tlidx,stpidx,ctidx), pval_SS(:,:,tt,tlidx,stpidx,ctidx), ...
+%                     %                         pval_CCA(:,:,tt,tlidx,stpidx,ctidx), ROCLAB, MSE_SS(:,:,tt,tlidx,stpidx,ctidx), MSE_CCA(:,:,tt,tlidx,stpidx,ctidx), ...
+%                     %                         CORR_SS(:,:,tt,tlidx,stpidx,ctidx), CORR_CCA(:,:,tt,tlidx,stpidx,ctidx)] = ...
+%                     %                         results_eval(sbj, d_ss, d_cca, yavg_ss, yavg_cca, tHRF, timelag, sts, ctr, lst_stim, SD, fq, lstHrfAdd, lstLongAct, eval_param, flag_plot, path, hrf, flag_trial, nTrials(tt,tlidx,stpidx,ctidx));
+%                     %                     % Dimensions of output metrics
+%                     % #CH x 2(Hbo+HbR) x 2 (cv split) x tlag x stepsize x corrthres
+%                     % old:  #CH x 2(Hbo+HbR) x 2 (cv split) x SBJ x tlag x stepsize x corrthres
+%                     
+%                     % display iterno
+%                     disp(['iter #' num2str(iterno) ', sbj ' num2str(sbj) ', ' num2str(ceil(1000*iterno/(totiter))/10) '% done'])
+%                     iterno = iterno+1;
+%                 end
+%                 % reset counter
+%                 ctidx =0;
+%             end
+%             % reset counter
+%             stpidx =0;
+%         end
+%         
         % reset counter
         tlidx =0;
     end
