@@ -321,6 +321,9 @@ for ff=1:9
             %xtk=hAx.XTick;                             % and the xtick values to plot() at...
             xtk = [0.5, 1, 2, 3, 3.5];
             hold on
+            if ff==5
+                FVgt.x(ff,cc) = 6; % set time to peak to 6 seconds (due to gt hrf plateau)
+            end
             hL=plot(xtk, ones(numel(xtk))*FVgt.x(ff,cc),'--g');
         end
         if ff<5
