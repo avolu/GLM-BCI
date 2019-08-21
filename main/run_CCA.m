@@ -78,7 +78,7 @@ ctidx =0;
 tic;
 
 
-for sbj = 3% 1:numel(sbjfolder) % loop across subjects
+for sbj = 2% 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -121,8 +121,8 @@ for sbj = 3% 1:numel(sbjfolder) % loop across subjects
     
     % create data split indices
     len = size(AUX,1);
-    spltIDX = {1:len/2,len/2+1:len};
-    trntst = {[1,2], [2,1]};
+    spltIDX = {1:floor(len/5),floor(len/5)+1:len};
+    trntst = {[2,1], [1,2]};
     
     %% run test and train CV splits
     for tt = 1%1:2
@@ -147,7 +147,7 @@ for sbj = 3% 1:numel(sbjfolder) % loop across subjects
             onset_stim(1) = [];
         end
         
-        for os = 1:5%size(onset_stim,1)%% loop around each stimulus
+        for os = 1%:5%size(onset_stim,1)%% loop around each stimulus
             
             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
@@ -216,11 +216,23 @@ for sbj = 3% 1:numel(sbjfolder) % loop across subjects
                         [yavg_cca, yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
                             hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, 0, 0);
                         
-                        a=dc{tt}(pre_stim:post_stim,:,:);
-                        figure;subplot(1,3,1);plot(squeeze(a(:,1,lstLongAct)));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);
-                        subplot(1,3,2);plot(squeeze(yavg_ss(:,1,lstLongAct))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);
-                        subplot(1,3,3);plot(squeeze(yavg_cca(:,1,lstLongAct)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.hrf_conc(:,1),'k','LineWidth',2);                        
+                        a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
+                        figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                        subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd(:,1)))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                        subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd(:,1))));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);                        
                    
+                        figure;plot(squeeze(yavg_ss_estimate(:,1,lstHrfAdd(:,1))));title('hrf estimate')
+                        
+                        ch = [lstHrfAdd(:,1)]
+                        i = 2
+                        
+                         figure;plot(tHRF,squeeze(a(:,1,lstShortAct)),'g');title('short distance');ylim([-1e-6 1.5e-6]);hold on;
+                         
+                         plot(tHRF,squeeze(yresid_ss(:,1,ch(i))),'y');
+                         plot(tHRF,squeeze(yavg_ss(:,1,ch(i))),'r');
+                         plot(tHRF,squeeze(a(:,1,ch(i))),'k');
+                         
+                         
                         % display current state:
                         disp([', sbj ' num2str(sbj) ', epoke ' num2str(os) ])
 %             foo_all_none(:,:,:,os) = yavg_ss;
