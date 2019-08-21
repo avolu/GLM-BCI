@@ -12,7 +12,7 @@ function [FM, clab] = getFeaturesAndMetrics(X, param, ival, hrf)
 %hrf        Ground truth hrf concentration data struct, assumes same sample rate as X 
 %           with dimensions T x C -- T: # Time points, C: # chromophores
 % OUTPUT
-% FM:       Matrix of F features+ M metrics with dimensions F+M x C x CH x N
+% FM:       Matrix of F features+ M metrics with dimensions F+M x C x CH x E
 % clab:     F+M x 1 cell array with labels for each feature/metric
 
 

@@ -20,7 +20,7 @@ function [FV] = featureExtract(dat, param)
 %% create feature labels
 FV.clab = {'min','max','peak2peak','avg','time2peak'};
 for i=1:size(param.swdw,1)
-    FV.clab{end+1} = ['slope_wdw' num2str(i)];
+    FV.clab{end+1} = ['slope wdw' num2str(i)];
 end
 
 %% find window indices from times

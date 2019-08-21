@@ -1,7 +1,7 @@
 clear all;
 
 % ##### FOLLOWING TWO LINES NEED CHANGE ACCORDING TO USER!
-malexflag = 1;
+malexflag = 0;
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -77,8 +77,11 @@ ctidx =0;
 
 tic;
 
+%% Eval plot flag (developing/debugging purposes only)
+evalplotflag = false;
 
-for sbj = 2% 1:numel(sbjfolder) % loop across subjects
+
+for sbj = 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -96,7 +99,7 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
     cd([path.dir filesep sbjfolder{sbj} filesep]);
     
     %% load data
-    [fq, t, AUX, d_long, d_short, d0_long, d0_short, d, d0, SD, s, lstLongAct,lstShortAct,lstHrfAdd] = load_nirs(filename,flag_conc,flag_detrend);
+    [fq, t, AUX, d_long, d_short, d0_long, d0_short, d, d0, SD, s, lstLongAct{sbj},lstShortAct{sbj},lstHrfAdd{sbj}] = load_nirs(filename,flag_conc,flag_detrend);
     
     %% lowpass filter AUX signals
     AUX = hmrBandpassFilt(AUX, fq, 0, 0.5);
@@ -147,11 +150,11 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
             onset_stim(1) = [];
         end
         
-        for os = 1%:5%size(onset_stim,1)%% loop around each stimulus
+        
+        for os = 1:size(onset_stim,1)%% loop around each stimulus
             
             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
-            
             
             % training
             dod_stitched = [dod(1:pre_stim,:);(dod(post_stim:end,:)-(dod(post_stim,:)-dod(pre_stim,:)))];
@@ -163,97 +166,176 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
             [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc_stitched, s_stitched, t_stitched, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, 0, 0);
             
+            %% Save normal raw data (single trials)
+            y_raw(:,:,:,os)= dc{tt}(pre_stim:post_stim,:,:);
             
             
             %% Perform GLM with SS
             [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
-                                  
             
             %% CCA with optimum parameters
-                tl = tlags;
-                sts = stpsize;
-                ctr = cthresh;
+            tl = tlags;
+            sts = stpsize;
+            ctr = cthresh;
+            
+            %% set stepsize for CCA
+            param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+            param.NumOfEmb = ceil(tl*fq / sts);
+            
+            %% Temporal embedding of auxiliary data from testing split
+            %                 aux_sigs = AUX(tstIDX,:);
+            aux_sigs = AUX(pre_stim:post_stim,:);
+            aux_emb = aux_sigs;
+            for i=1:param.NumOfEmb
+                aux=circshift( aux_sigs, i*param.tau, 1);
+                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+                aux_emb=[aux_emb aux];
+            end
+            
+            % zscore
+            aux_emb=zscore(aux_emb);
+            % set correlation trheshold for CCA to 0 so we dont lose anything here
+            param.ct = 0;   % correlation threshold
+            % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
+            % use test data of LD channels without synth HRF
+            X = d0_long(trnIDX,:);
+            % new tCCA with shrinkage
+            [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
+            
+            disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
+            
+            %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
+            % overwrite: auxiliary cca components that have
+            % correlation > ctr
+            compindex=find(ADD_trn{tt}.ccac>ctr);
+            %overwrite: reduced mapping matrix Av
+            ADD_trn{tt}.Av_red = ADD_trn{tt}.Av(:,compindex);
+            
+            %% Calculate testig regressors with CCA mapping matrix A from testing
+            REG_tst = aux_emb*ADD_trn{tt}.Av_red;
+            
+            %% Perform GLM with CCA
+            [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, 0, 0);
+            
+            if evalplotflag
+                a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1)))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 
-                    %% set stepsize for CCA
-                    param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
-                    param.NumOfEmb = ceil(tl*fq / sts);
-                    
-                    
-                    %% Temporal embedding of auxiliary data from testing split
-                    %                 aux_sigs = AUX(tstIDX,:);
-                    aux_sigs = AUX(pre_stim:post_stim,:);
-                    aux_emb = aux_sigs;
-                    for i=1:param.NumOfEmb
-                        aux=circshift( aux_sigs, i*param.tau, 1);
-                        aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                        aux_emb=[aux_emb aux];
-                    end
-                    
-                    % zscore
-                    aux_emb=zscore(aux_emb);
-                    % set correlation trheshold for CCA to 0 so we dont lose anything here
-                    param.ct = 0;   % correlation threshold
-                    % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
-                    % use test data of LD channels without synth HRF
-                    X = d0_long(trnIDX,:);
-                    % new tCCA with shrinkage
-                    [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
-                    
-                         disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
-                        
-                        %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
-                        % overwrite: auxiliary cca components that have
-                        % correlation > ctr
-                        compindex=find(ADD_trn{tt}.ccac>ctr);
-                        %overwrite: reduced mapping matrix Av
-                        ADD_trn{tt}.Av_red = ADD_trn{tt}.Av(:,compindex);
-                        
-                        %% Calculate testig regressors with CCA mapping matrix A from testing
-                        REG_tst = aux_emb*ADD_trn{tt}.Av_red;
-                        
-                        %% Perform GLM with CCA
-                        [yavg_cca, yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                            hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, 0, 0);
-                        
-                        a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
-                        figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                        subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd(:,1)))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                        subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd(:,1))));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);                        
-                   
-                        figure;plot(squeeze(yavg_ss_estimate(:,1,lstHrfAdd(:,1))));title('hrf estimate')
-                        
-                        ch = [lstHrfAdd(:,1)]
-                        i = 2
-                        
-                         figure;plot(tHRF,squeeze(a(:,1,lstShortAct)),'g');title('short distance');ylim([-1e-6 1.5e-6]);hold on;
-                         
-                         plot(tHRF,squeeze(yresid_ss(:,1,ch(i))),'y');
-                         plot(tHRF,squeeze(yavg_ss(:,1,ch(i))),'r');
-                         plot(tHRF,squeeze(a(:,1,ch(i))),'k');
-                         
-                         
-                        % display current state:
-                        disp([', sbj ' num2str(sbj) ', epoke ' num2str(os) ])
-%             foo_all_none(:,:,:,os) = yavg_ss;
-%             foo_all_ss(:,:,:,os) = yavg_ss;
-%             foo_all_cca(:,:,:,os) = yavg_ss;
-            
-            
+                figure;
+                plot(squeeze(yavg_ss_estimate(:,1,lstHrfAdd{sbj}(:,1))));title('hrf estimate')
+                
+                ch = [lstHrfAdd{sbj}(:,1)];
+                i = 2;
+                figure;
+                plot(tHRF,squeeze(a(:,1,lstShortAct{sbj})),'g');title('short distance');ylim([-1e-6 1.5e-6]);hold on;
+                plot(tHRF,squeeze(yresid_ss(:,1,ch(i))),'y');
+                plot(tHRF,squeeze(yavg_ss(:,1,ch(i))),'r');
+                plot(tHRF,squeeze(a(:,1,ch(i))),'k');
+                plot(hrf.t_hrf,hrf.hrf_conc(:,1),'--r');
+                legend('SS','Residual','HRFestimate','Raw','Ground Truth')
+            end
+            % display current state:
+            disp([', sbj ' num2str(sbj) ', epoch ' num2str(os) ])
+            %             foo_all_none(:,:,:,os) = yavg_ss;
+            %             foo_all_ss(:,:,:,os) = yavg_ss;
+            %             foo_all_cca(:,:,:,os) = yavg_ss;
         end
-        %% get features/markers               
-            [FMss, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
-    end
-    %% save data for subject
-    if flag_save
-        disp(['saving sbj ' num2str(sbj) '...'])
-        save([path.save sfoldername '\results_sbj' num2str(sbj) '.mat'], 'DET_SS', 'DET_CCA', 'pval_SS', 'pval_CCA', 'ROCLAB', 'MSE_SS', 'MSE_CCA', 'CORR_SS', 'CORR_CCA', 'nTrials');
+        %% get features/markers
+        % short separation
+        [FMdc{sbj}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
+        % short separation
+        [FMss{sbj}, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
+        % tCCA
+        [FMcca{sbj}, clab] = getFeaturesAndMetrics(yavg_cca, fparam, ival, hrf);
     end
     % clear vars
     clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
+end
+
+% %% save data
+%     if flag_save
+%         disp(['saving sbj ' num2str(sbj) '...'])
+%         save([path.save sfoldername '\results_sbj' num2str(sbj) '.mat'], 'DET_SS', 'DET_CCA', 'pval_SS', 'pval_CCA', 'ROCLAB', 'MSE_SS', 'MSE_CCA', 'CORR_SS', 'CORR_CCA', 'nTrials');
+%     end
+
+
+%% Sort through results and append
+F_Raw_Hrf=[];
+F_Raw_NoHrf=[];
+F_SS_Hrf=[];
+F_SS_NoHrf=[];
+F_CCA_Hrf=[];
+F_CCA_NoHrf=[];
+for sbj = 1:numel(sbjfolder)
+    % channel indices that have or dont have gt HRF
+    idxChHrf = lstHrfAdd{sbj}(:,1);
+    idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
+    % number of available channels
+    sHrf = size(FMdc{sbj}(:,:,idxChHrf,:));
+    sNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:));
+    % extract and append data, new dimension is F x C x I,
+    % where F: # of Features, C: # Number of Chromophores, I: # of all
+    % trials (epochs*channels)
+    F_Raw_Hrf = cat(3, F_Raw_Hrf, reshape(FMdc{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+    F_Raw_NoHrf = cat(3, F_Raw_NoHrf, reshape(FMdc{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+    F_SS_Hrf = cat(3, F_SS_Hrf, reshape(FMss{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+    F_SS_NoHrf = cat(3, F_SS_NoHrf, reshape(FMss{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+    F_CCA_Hrf = cat(3, F_CCA_Hrf, reshape(FMcca{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+    F_CCA_NoHrf = cat(3, F_CCA_NoHrf, reshape(FMcca{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
     
 end
 
+%% Paired T-Tests
+for ff = 1:9
+    for cc=1:3
+        [h_co(ff,cc,1),p_co(ff,cc,1)]= ttest(squeeze(F_Raw_Hrf(ff,cc,:)),squeeze(F_SS_Hrf(ff,cc,:)));
+        [h_co(ff,cc,2),p_co(ff,cc,2)]= ttest(squeeze(F_Raw_Hrf(ff,cc,:)),squeeze(F_CCA_Hrf(ff,cc,:)));
+        [h_co(ff,cc,3),p_co(ff,cc,3)]= ttest(squeeze(F_SS_Hrf(ff,cc,:)),squeeze(F_CCA_Hrf(ff,cc,:)));
+    end
+end
+
+%% (Box)Plot results
+figure
+labels = {'No GLM', 'GLM SS', 'GLM tCCA'};
+chrom = {' HbO', ' HbR'};
+% for all features
+for ff=1:9
+    % for both chromophores
+    for cc=1:2
+        subplot(2,9,(cc-1)*9+ff)
+        xtickangle(35)
+        hold on
+        %% boxplots 
+        % with cca
+        boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+        % without cca
+        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
+        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+        % ground truth
+        if ff<8
+            hAx=gca;                                   % retrieve the axes handle
+            %xtk=hAx.XTick;                             % and the xtick values to plot() at...
+            xtk = [0.5, 1, 2, 3, 3.5];
+            hold on
+            hL=plot(xtk, ones(numel(xtk))*FVgt.x(ff,cc),'--g');
+        end
+        if ff<5
+           ylabel('\muMol') 
+        end
+        if ff==5
+           ylabel('sec') 
+        end
+        if ff==9
+           ylabel('Mol') 
+        end
+        
+        title([clab{ff} chrom{cc}])
+    end
+end
 
 toc;
 
