@@ -78,7 +78,7 @@ ctidx =0;
 tic;
 
 
-for sbj = 2% 1:numel(sbjfolder) % loop across subjects
+for sbj = 3% 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -147,7 +147,7 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
             onset_stim(1) = [];
         end
         
-        for os = 1:size(onset_stim,1)%% loop around each stimulus
+        for os = 1:5%size(onset_stim,1)%% loop around each stimulus
             
             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
@@ -166,12 +166,9 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
             
             
             %% Perform GLM with SS
-            [yavg_ss, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
+            [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
-            
-            %% get features/markers               
-            [FMss, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
-                        
+                                  
             
             %% CCA with optimum parameters
                 tl = tlags;
@@ -226,12 +223,14 @@ for sbj = 2% 1:numel(sbjfolder) % loop across subjects
                    
                         % display current state:
                         disp([', sbj ' num2str(sbj) ', epoke ' num2str(os) ])
-            foo_all_none(:,:,:,os) = yavg_ss;
-            foo_all_ss(:,:,:,os) = yavg_ss;
-            foo_all_cca(:,:,:,os) = yavg_ss;
+%             foo_all_none(:,:,:,os) = yavg_ss;
+%             foo_all_ss(:,:,:,os) = yavg_ss;
+%             foo_all_cca(:,:,:,os) = yavg_ss;
             
             
         end
+        %% get features/markers               
+            [FMss, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
     end
     %% save data for subject
     if flag_save
