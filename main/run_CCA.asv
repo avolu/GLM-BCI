@@ -1,7 +1,7 @@
 clear all;
 
 % ##### FOLLOWING TWO LINES NEED CHANGE ACCORDING TO USER!
-malexflag = 0;
+malexflag = 1;
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -50,7 +50,11 @@ rtccaflag = true;
 fparam.swdw=[0,4;10,17]; % need to discuss this selection!
 ival = [eval_param.HRFmin eval_param.HRFmax];
 
-
+% get features from ground truth
+hrfdat.x = hrf.hrf_conc;
+hrfdat.fs=25;
+hrfdat.t=hrf.t_hrf';
+[FVgt] = featureExtract(hrfdat, fparam);
 
 %motion artifact detection
 motionflag = true;
@@ -73,9 +77,6 @@ ctidx =0;
 
 tic;
 
-%iteration number
-iterno = 1;
-totiter = numel(sbjfolder)*2*numel(tlags)*numel(stpsize)*numel(cthresh);
 
 for sbj = 5% 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
@@ -146,7 +147,7 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
             onset_stim(1) = [];
         end
         
-        for os = 5%:size(onset_stim,1)%% loop around each stimulus
+        for os = 1:size(onset_stim,1)%% loop around each stimulus
             
             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
@@ -171,26 +172,14 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
             %% get features/markers               
             [FMss, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
                         
-            %         %% Perform GLM with SS
-            %         [yavg_ss, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-            %             hmrDeconvHRF_DriftSS(dc(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
-            %         yavg_ss_os(:,:,:,os) = yavg_ss;
-            %
             
-            
-            
-            
-            
-            %% CCA EVAL
-            for tl = tlags %loop across timelags
-                timelag = tl;
-                tlidx = tlidx+1;
-                
-                for sts = stpsize  %loop across stepsizes
-                    stpidx = stpidx+1;
+            %% CCA with optimum parameters
+                tl = tlags;
+                sts = stpsize;
+%                     stpidx = stpidx+1;
                     %% set stepsize for CCA
                     param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
-                    param.NumOfEmb = ceil(timelag*fq / sts);
+                    param.NumOfEmb = ceil(tl*fq / sts);
                     
                     %% Temporal embedding of auxiliary data from testing split
                     %                 aux_sigs = AUX(tstIDX,:);
@@ -214,8 +203,9 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
                     [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
                     
                     
-                    for ctr = cthresh %loop across correlation thresholds
-                        ctidx = ctidx+1;
+%                     for ctr = cthresh %loop across correlation thresholds
+                        ctr = cthresh
+%                         ctidx = ctidx+1;
                         disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
                         
                         %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
@@ -229,7 +219,7 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
                         REG_tst = aux_emb*ADD_trn{tt}.Av_red;
                         
                         %% Perform GLM with CCA
-                        [yavg_cca, yavgstd_cca, tHRF, nTrials(tt,tlidx,stpidx,ctidx), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
+                        [yavg_cca, yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
                             hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, 0, 0);
                         
                         a=dc{tt}(pre_stim:post_stim,:,:);
@@ -261,17 +251,17 @@ for sbj = 5% 1:numel(sbjfolder) % loop across subjects
                         % old:  #CH x 2(Hbo+HbR) x 2 (cv split) x SBJ x tlag x stepsize x corrthres
                         
                         % display iterno
-                        disp(['iter #' num2str(iterno) ', sbj ' num2str(sbj) ', ' num2str(ceil(1000*iterno/(totiter))/10) '% done'])
-                        iterno = iterno+1;
-                    end
-                    % reset counter
-                    ctidx =0;
-                end
-                % reset counter
-                stpidx =0;
-            end
+                        disp([', sbj ' num2str(sbj) ', epoke ' num2str(os) ])
+%                         iterno = iterno+1;
+%                     end
+%                     % reset counter
+%                     ctidx =0;
+%                 end
+%                 % reset counter
+%                 stpidx =0;
+%             end
             % reset counter
-            tlidx =0;
+%             tlidx =0;
             foo_all_none(:,:,:,os) = yavg_ss;
             foo_all_ss(:,:,:,os) = yavg_ss;
             foo_all_cca(:,:,:,os) = yavg_ss;
