@@ -84,9 +84,10 @@ tic;
 
 %% Eval plot flag (developing/debugging purposes only)
 evalplotflag = 1;
+evalplotflag_glm = 0;
 
 
-for sbj = 1%:numel(sbjfolder) % loop across subjects
+for sbj = 1:2%:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -177,7 +178,7 @@ for sbj = 1%:numel(sbjfolder) % loop across subjects
             
             %% Perform GLM with SS
             [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag);
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm);
             
             %% CCA with optimum parameters
             tl = tlags;
@@ -222,7 +223,7 @@ for sbj = 1%:numel(sbjfolder) % loop across subjects
             
             %% Perform GLM with CCA
             [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0);
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst(:,1:3), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0);
             
             if evalplotflag
                 a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
@@ -234,7 +235,7 @@ for sbj = 1%:numel(sbjfolder) % loop across subjects
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
             end
             % display current state:
-            disp([', sbj ' num2str(sbj) ', epoch ' num2str(os) ])
+            disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
             %             foo_all_none(:,:,:,os) = yavg_ss;
             %             foo_all_ss(:,:,:,os) = yavg_ss;
             %             foo_all_cca(:,:,:,os) = yavg_ss;
@@ -265,7 +266,7 @@ F_SS_Hrf=[];
 F_SS_NoHrf=[];
 F_CCA_Hrf=[];
 F_CCA_NoHrf=[];
-for sbj = 1:numel(sbjfolder)
+for sbj = 1:2%numel(sbjfolder)
     % channel indices that have or dont have gt HRF
     idxChHrf = lstHrfAdd{sbj}(:,1);
     idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
