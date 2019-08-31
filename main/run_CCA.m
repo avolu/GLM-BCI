@@ -83,8 +83,9 @@ ctidx =0;
 tic;
 
 %% Eval plot flag (developing/debugging purposes only)
-evalplotflag = 1;
-evalplotflag_glm = 0;
+evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
+evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
+flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 
 
 for sbj = 1:2%:numel(sbjfolder) % loop across subjects
@@ -177,7 +178,7 @@ for sbj = 1:2%:numel(sbjfolder) % loop across subjects
             
             
             %% Perform GLM with SS
-            [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
+            [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,os), yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm );
             
             %% CCA with optimum parameters
@@ -222,17 +223,28 @@ for sbj = 1:2%:numel(sbjfolder) % loop across subjects
             REG_tst = aux_emb*ADD_trn{tt}.Av_red;
             
             %% Perform GLM with CCA
-            [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
+            [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,os), yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
                 hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0);
             
             if evalplotflag
                 a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO');
+            figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
                 subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR');
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)');
                 subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+            
+            
+            figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
+                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)');
+                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+         
+            
+            
             end
             % display current state:
             disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
@@ -240,6 +252,15 @@ for sbj = 1:2%:numel(sbjfolder) % loop across subjects
             %             foo_all_ss(:,:,:,os) = yavg_ss;
             %             foo_all_cca(:,:,:,os) = yavg_ss;
         end
+        
+        if flag_hrf_resid 
+            
+            yavg_ss = ynew_ss;
+            yavg_cca = ynew_cca;
+            
+        end
+        
+        
         %% get features/markers
         % short separation
         [FMdc{sbj}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
