@@ -82,7 +82,7 @@
 %
 % LOG:
 
-function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect )
+function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect, hrf )
 
 
 dt = t(2)-t(1);
@@ -634,7 +634,7 @@ for conc=1:2 %only HbO and HbR
                 
                 %############################
                 %reconstruct y and yresid (y is obtained just from the HRF) and R
-                for i = 1:size(lstML,2)
+                for i = 1:size(lstML,1)
                     yresid(lstInc,conc,lstML(i)) = y(lstInc,conc,lstML(i)) - permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]);
                     ynew(lstInc,conc,lstML(i)) = permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]) + yresid(lstInc,conc,lstML(i));
                     yfit = permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]);

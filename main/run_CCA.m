@@ -1,12 +1,16 @@
 clear all;
 
-% ##### FOLLOWING TWO LINES NEED CHANGE ACCORDING TO USER!
-malexflag = 0;
+malexflag = 1; % user flag
 if malexflag
     %Meryem
-    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
+%     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
+%     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+%     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
+    
+    %Meryem Laptop
+    path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    path.dir = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    path.save = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % save directory
 else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -40,6 +44,7 @@ eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 10;
 flag_detrend = 1; % linear detrend if 1, no trend if 0 during "pre-processing" (drift correction in GLM is set to 0 for now)
+drift_term = 1; % linear detrend for GLM_SS and GLM_CCA (not for getting hrf estimate)
 % CCA parameters
 flags.pcaf =  [0 0]; % no pca of X or AUX
 flags.shrink = true;
@@ -78,7 +83,7 @@ ctidx =0;
 tic;
 
 %% Eval plot flag (developing/debugging purposes only)
-evalplotflag = false;
+evalplotflag = 1;
 
 
 for sbj = 1:numel(sbjfolder) % loop across subjects
@@ -164,7 +169,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             
             % estimate HRF from training data
             [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc_stitched, s_stitched, t_stitched, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, 0, 0);
+                hmrDeconvHRF_DriftSS(dc_stitched, s_stitched, t_stitched, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, 0, 0,hrf);
             
             %% Save normal raw data (single trials)
             y_raw(:,:,:,os)= dc{tt}(pre_stim:post_stim,:,:);
@@ -172,7 +177,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             
             %% Perform GLM with SS
             [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, 0, 0);
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf);
             
             %% CCA with optimum parameters
             tl = tlags;
@@ -217,7 +222,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             
             %% Perform GLM with CCA
             [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), d_cca, yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, 0, 0);
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf);
             
             if evalplotflag
                 a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
@@ -231,7 +236,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 ch = [lstHrfAdd{sbj}(:,1)];
                 i = 2;
                 figure;
-                plot(tHRF,squeeze(a(:,1,lstShortAct{sbj})),'g');title('short distance');ylim([-1e-6 1.5e-6]);hold on;
+                plot(tHRF,squeeze(a(:,1,lstShortAct{sbj})),'g');ylim([-1e-6 1.5e-6]);hold on;
                 plot(tHRF,squeeze(yresid_ss(:,1,ch(i))),'y');
                 plot(tHRF,squeeze(yavg_ss(:,1,ch(i))),'r');
                 plot(tHRF,squeeze(a(:,1,ch(i))),'k');
