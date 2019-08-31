@@ -25,13 +25,9 @@ filename = 'resting_sim';
 hrf = load([path.code '\sim HRF\hrf_simdat_100.mat']);
 %% save folder name
 sfoldername = '\CV_results_data';
-% flag for mse/corr for each trial (1 = get sum of mse for each trial, 0 = get mse for average estimated hrf)
-flag_trial = 0;
-
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
 set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
 sbjfolder = {'Subj33','Subj34','Subj36','Subj37','Subj38','Subj39', 'Subj40', 'Subj41', 'Subj43', 'Subj44','Subj46','Subj47','Subj49','Subj51'};
-
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
@@ -61,7 +57,7 @@ hrfdat.fs=25;
 hrfdat.t=hrf.t_hrf';
 [FVgt] = featureExtract(hrfdat, fparam);
 
-%motion artifact detection
+% motion artifact detection
 motionflag = true;
 %plot flag
 flag_plot = true;
@@ -71,14 +67,9 @@ flag_plot = true;
 % tlags = 0:1:10;
 % stpsize = 2:2:24;
 % cthresh = 0:0.1:0.9;
-
 tlags = 3;
 stpsize = 2;
 cthresh = 0.3;
-
-tlidx =0;
-stpidx =0;
-ctidx =0;
 
 tic;
 
@@ -88,7 +79,7 @@ evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift e
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 
 
-for sbj = 1:2%:numel(sbjfolder) % loop across subjects
+for sbj = 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
     
     %% (re-)initialize result matrices
@@ -287,7 +278,7 @@ F_SS_Hrf=[];
 F_SS_NoHrf=[];
 F_CCA_Hrf=[];
 F_CCA_NoHrf=[];
-for sbj = 1:2%numel(sbjfolder)
+for sbj = 1:numel(sbjfolder)
     % channel indices that have or dont have gt HRF
     idxChHrf = lstHrfAdd{sbj}(:,1);
     idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
