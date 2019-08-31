@@ -82,7 +82,7 @@
 %
 % LOG:
 
-function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect, hrf )
+function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect, hrf, lstHrfAdd, evalplotflag)
 
 
 dt = t(2)-t(1);
@@ -658,6 +658,30 @@ for conc=1:2 %only HbO and HbR
                         ysum2(:,lstML(i),conc,iCond) = yavgstd(:,lstML(i),conc,iCond).^2 + nTrials(iCond)*yavg(:,lstML(i),conc,iCond).^2;
                     end
                     
+                    if evalplotflag
+                    if ismember(lstML(i),lstHrfAdd(:,1))
+                        % if there is a drift term (At/foo in the order of hrf (one term), drift (two terms) and ss (one term) all per conc)
+                        figure; % sanity check
+                        subplot(2,1,1);
+                        plot(tHRF,y(lstInc,conc,lstML(i)),'.k');hold on;%ylabel('raw')
+                        plot(tHRF,yresid(lstInc,conc,lstML(i))+permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2])+Ass*foo(4,lstML(i),conc)+xDrift*foo(2:3,lstML(i),conc),'--m');
+                        plot(tHRF,permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]));%ylabel('At*foo (model fit)');
+                        plot(tHRF,yresid(lstInc,conc,lstML(i)));%ylabel('yresid')
+                        plot(tHRF,permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]));%ylabel('hrf only')
+                        plot(tHRF,Ass*foo(4,lstML(i),conc)); %ylabel('ss')
+                        plot(tHRF,xDrift*foo(2:3,lstML(i),conc));ylabel('drift'); grid; %ylim([-1.5e-6 2e-6])
+                        legend('raw','sum','model fit','yresid','hrf only', 'ss only','drift');
+                        
+                        subplot(2,1,2);
+                        plot(tHRF,squeeze(paramsBasis(:,conc,lstML(i))));hold on;% ylabel('yestimate');
+                        plot(tHRF,permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]));%ylabel('hrf only')
+                        plot(tHRF,ynew(lstInc,conc,lstML(i)));%ylabel('ynew (hrf+resid)');
+                        plot(hrf.t_hrf,hrf.hrf_conc(:,conc),'k','LineWidth',2);ylim([-1.5e-6 2e-6]);grid
+                        legend('yestimate','hrf only','hrf+resid (ynew)','true hrf');
+                    end
+                    end
+                    
+                    
                 end
                 
                 
@@ -671,6 +695,7 @@ for conc=1:2 %only HbO and HbR
         
     end % end loop on short separation groups
 end
+
 
 yavg(:,:,3,:) = yavg(:,:,1,:) + yavg(:,:,2,:);
 yavg = permute(yavg,[1 3 2 4]);
