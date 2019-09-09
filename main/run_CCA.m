@@ -1,11 +1,11 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
-%     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
-%     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-%     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
+    %     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    %     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    %     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
     
     %Meryem Laptop
     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -40,7 +40,7 @@ eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 10;
 flag_detrend = 1; % linear detrend if 1, no trend if 0 during "pre-processing" (drift correction in GLM is set to 0 for now)
-drift_term = 1; % linear detrend for GLM_SS and GLM_CCA (not for getting hrf estimate)
+drift_term = 0; % linear detrend for GLM_SS and GLM_CCA (not for getting hrf estimate)
 % CCA parameters
 flags.pcaf =  [0 0]; % no pca of X or AUX
 flags.shrink = true;
@@ -76,7 +76,7 @@ tic;
 %% Eval plot flag (developing/debugging purposes only)
 evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
 evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
-flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
+flag_hrf_resid = 1; % 0: hrf only; 1: hrf+yresid
 
 
 for sbj = 1:numel(sbjfolder) % loop across subjects
@@ -219,23 +219,23 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             
             if evalplotflag
                 a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
-            figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
                 subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)');
                 subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
-            
-            
-            figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
+                
+                
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
                 subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)');
                 subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
-         
-            
-            
+                
+                
+                
             end
             % display current state:
             disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
@@ -244,7 +244,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %             foo_all_cca(:,:,:,os) = yavg_ss;
         end
         
-        if flag_hrf_resid 
+        if flag_hrf_resid
             
             yavg_ss = ynew_ss;
             yavg_cca = ynew_cca;
@@ -306,7 +306,7 @@ for ff = 1:9
     end
 end
 
-%% (Box)Plot results
+%% (Box)Plot results (normal metrics)
 figure
 labels = {'No GLM', 'GLM SS', 'GLM tCCA'};
 chrom = {' HbO', ' HbR'};
@@ -317,7 +317,7 @@ for ff=1:9
         subplot(2,9,(cc-1)*9+ff)
         xtickangle(35)
         hold on
-        %% boxplots 
+        %% boxplots
         % with cca
         boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
         % without cca
@@ -335,18 +335,60 @@ for ff=1:9
             hL=plot(xtk, ones(numel(xtk))*FVgt.x(ff,cc),'--g');
         end
         if ff<5
-           ylabel('\muMol') 
+            ylabel('\muMol')
         end
         if ff==5
-           ylabel('sec') 
+            ylabel('sec')
         end
         if ff==9
-           ylabel('Mol') 
+            ylabel('Mol')
         end
         
         title([clab{ff} chrom{cc}])
     end
 end
+
+
+%% (Box)Plot results (metric errors)
+figure
+labels = {'No GLM', 'GLM SS', 'GLM tCCA'};
+chrom = {' HbO', ' HbR'};
+% for all features
+for ff=1:9
+    % for both chromophores
+    for cc=1:2
+        subplot(2,9,(cc-1)*9+ff)
+        xtickangle(35)
+        hold on
+        %% boxplots
+        if ff==5
+            FVgt.x(ff,cc) = 6; % set time to peak to 6 seconds (due to gt hrf plateau)
+        end
+        
+        if ff<8
+            % without GLM, with GLM+SS, with GLM+CCA
+            boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_CCA_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels)
+            title(['ERR ' clab{ff} chrom{cc}])
+        else
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+            title([clab{ff} chrom{cc}])
+        end
+        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
+        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+        
+        
+        if ff<5
+            ylabel('\muMol')
+        end
+        if ff==5
+            ylabel('sec')
+        end
+        if ff==9
+            ylabel('Mol')
+        end
+    end
+end
+
 
 toc;
 
