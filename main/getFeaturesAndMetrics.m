@@ -43,8 +43,8 @@ for e=1:size(dat.x, 4)
         for c=1:size(dat.x,2)
             % correlation
             FM(numel(FV.clab)+1,c,ch,e) = corr(squeeze(dat.x(t0:end,c,ch,e)),squeeze(hrf.hrf_conc(1:tlen,c)));
-            % mse
-            FM(numel(FV.clab)+2,c,ch,e) = sqrt(nanmean((squeeze(dat.x(t0:end,c,ch,e))-squeeze(hrf.hrf_conc(1:tlen,c))).^2));
+            % mse in muMol
+            FM(numel(FV.clab)+2,c,ch,e) = 1e6*sqrt(nanmean((squeeze(dat.x(t0:end,c,ch,e))-squeeze(hrf.hrf_conc(1:tlen,c))).^2));
         end
     end    
 end

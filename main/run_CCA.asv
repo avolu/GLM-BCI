@@ -61,6 +61,8 @@ hrfdat.t=hrf.t_hrf';
 motionflag = true;
 %plot flag
 flag_plot = true;
+% include tcca results or not in plots?
+flag_plotCCA = false;
 
 
 % Validation parameters
@@ -319,10 +321,15 @@ for ff=1:9
         hold on
         %% boxplots
         % with cca
-        boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+        if flag_plotCCA
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+            H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+        else
         % without cca
-        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
-        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels{1,2})
+            H=sigstar({[1,2]},squeeze(p_co(ff,cc,1:3)));
+        end
+       
         % ground truth
         if ff<8
             hAx=gca;                                   % retrieve the axes handle
@@ -365,12 +372,19 @@ for ff=1:9
             FVgt.x(ff,cc) = 6; % set time to peak to 6 seconds (due to gt hrf plateau)
         end
         
-        % without GLM, with GLM+SS, with GLM+CCA
-        boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_CCA_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels)
-
-        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
-        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
-
+        if ff<8
+            % without GLM, with GLM+SS, with GLM+CCA
+            if flag_plotCCA
+                boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_CCA_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels)
+            else
+                boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels{1,2})
+            end
+            title(['ERR ' clab{ff} chrom{cc}])
+        else
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+            title([clab{ff} chrom{cc}])
+        end
+        
         
         if ff<5
             ylabel('\muMol')
@@ -381,8 +395,6 @@ for ff=1:9
         if ff==9
             ylabel('Mol')
         end
-        
-        title(['ERR ' clab{ff} chrom{cc}])
     end
 end
 

@@ -40,7 +40,7 @@ eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 10;
 flag_detrend = 1; % linear detrend if 1, no trend if 0 during "pre-processing" (drift correction in GLM is set to 0 for now)
-drift_term = 0; % linear detrend for GLM_SS and GLM_CCA (not for getting hrf estimate)
+drift_term = 1; % linear detrend for GLM_SS and GLM_CCA (not for getting hrf estimate)
 % CCA parameters
 flags.pcaf =  [0 0]; % no pca of X or AUX
 flags.shrink = true;
@@ -61,6 +61,8 @@ hrfdat.t=hrf.t_hrf';
 motionflag = true;
 %plot flag
 flag_plot = true;
+% include tcca results or not in plots?
+flag_plotCCA = false;
 
 
 % Validation parameters
@@ -319,10 +321,15 @@ for ff=1:9
         hold on
         %% boxplots
         % with cca
-        boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+        if flag_plotCCA
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+            H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+        else
         % without cca
-        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
-        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels(1:2))
+            H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
+        end
+       
         % ground truth
         if ff<8
             hAx=gca;                                   % retrieve the axes handle
@@ -367,14 +374,25 @@ for ff=1:9
         
         if ff<8
             % without GLM, with GLM+SS, with GLM+CCA
-            boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_CCA_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels)
+            if flag_plotCCA
+                boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_CCA_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels)
+                H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+            else
+                boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels(1:2))
+                H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
+            end
             title(['ERR ' clab{ff} chrom{cc}])
         else
-            boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+            if flag_plotCCA
+                boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
+                H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
+            else
+                boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels(1:2))
+                H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
+            end
+            
             title([clab{ff} chrom{cc}])
         end
-        %boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels)
-        H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
         
         
         if ff<5
@@ -384,7 +402,7 @@ for ff=1:9
             ylabel('sec')
         end
         if ff==9
-            ylabel('Mol')
+            ylabel('\muMol')
         end
     end
 end
