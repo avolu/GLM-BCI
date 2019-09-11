@@ -661,6 +661,23 @@ for conc=1:2 %only HbO and HbR
                     if evalplotflag
                     if ismember(lstML(i),lstHrfAdd(:,1))
                         % if there is a drift term (At/foo in the order of hrf (one term), drift (two terms) and ss (one term) all per conc)
+                        if driftOrder ==0
+                        figure; % sanity check
+                        subplot(2,1,1);
+                        plot(tHRF,y(lstInc,conc,lstML(i)),'.k');hold on;%ylabel('raw')
+                        plot(tHRF,yresid(lstInc,conc,lstML(i))+permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2])+Ass*foo(2,lstML(i),conc),'--m');
+                        plot(tHRF,permute(At(lstInc,:,lstML(i))*foo(:,lstML(i),conc),[1 3 2]));%ylabel('At*foo (model fit)');
+                        plot(tHRF,yresid(lstInc,conc,lstML(i)));%ylabel('yresid')
+                        plot(tHRF,permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]));%ylabel('hrf only')
+                        plot(tHRF,Ass*foo(2,lstML(i),conc));grid; %ylabel('ss')
+                        legend('raw','sum','model fit','yresid','hrf only', 'ss only');
+                        subplot(2,1,2);
+                        plot(tHRF,squeeze(paramsBasis(:,conc,lstML(i))));hold on;% ylabel('yestimate');
+                        plot(tHRF,permute(dA(lstInc,:,conc,lstML(i))*foo(1:(nB*nCond),lstML(i),conc),[1 3 2]));%ylabel('hrf only')
+                        plot(tHRF,ynew(lstInc,conc,lstML(i)));%ylabel('ynew (hrf+resid)');
+                        plot(hrf.t_hrf,hrf.hrf_conc(:,conc),'k','LineWidth',2);ylim([-1.5e-6 2e-6]);grid
+                        legend('yestimate','hrf only','hrf+resid (ynew)','true hrf');
+                        else
                         figure; % sanity check
                         subplot(2,1,1);
                         plot(tHRF,y(lstInc,conc,lstML(i)),'.k');hold on;%ylabel('raw')
@@ -678,6 +695,7 @@ for conc=1:2 %only HbO and HbR
                         plot(tHRF,ynew(lstInc,conc,lstML(i)));%ylabel('ynew (hrf+resid)');
                         plot(hrf.t_hrf,hrf.hrf_conc(:,conc),'k','LineWidth',2);ylim([-1.5e-6 2e-6]);grid
                         legend('yestimate','hrf only','hrf+resid (ynew)','true hrf');
+                        end
                     end
                     end
                     
