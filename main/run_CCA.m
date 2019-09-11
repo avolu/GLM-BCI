@@ -3,14 +3,14 @@ clear all;
 malexflag = 0; % user flag
 if malexflag
     %Meryem
-    %     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    %     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    %     path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
+    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    path.save = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % save directory
     
     %Meryem Laptop
-    path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    path.save = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % save directory
+    %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    %     path.dir = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    %     path.save = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % save directory
 else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -325,11 +325,11 @@ for ff=1:9
             boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
             H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,cc,1:3)));
         else
-        % without cca
+            % without cca
             boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:))], 'labels', labels(1:2))
             H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
         end
-       
+        
         % ground truth
         if ff<8
             hAx=gca;                                   % retrieve the axes handle
