@@ -82,7 +82,7 @@
 %
 % LOG:
 
-function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect, hrf, lstHrfAdd, evalplotflag)
+function [yavg, yavgstd, tHRF, nTrials, ynew, yresid, ysum2, beta, yR] = hmrDeconvHRF_DriftSS(y, s, t, SD, Aaux, tIncAuto, trange, glmSolveMethod, idxBasis, paramsBasis, rhoSD_ssThresh, flagSSmethod, driftOrder, flagMotionCorrect, hrf, lstHrfAdd, evalplotflag, stim_timing)
 
 
 dt = t(2)-t(1);
@@ -333,6 +333,10 @@ for ii=2:(driftOrder+1)
     xDrift(:,ii) = ([1:nT]').^(ii-1);
     xDrift(:,ii) = xDrift(:,ii) / xDrift(end,ii);
 end
+if isempty(stim_timing) == 0 
+    xDrift([stim_timing(1):stim_timing(2)],:) = 0;
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %expand design matrix with Aaux

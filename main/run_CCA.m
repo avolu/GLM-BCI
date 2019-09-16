@@ -39,8 +39,10 @@ eval_param.HRFmax = 17; % used only for block design runs
 eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 10;
-flag_detrend = 1; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing" 
-drift_term = 0; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
+flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing" 
+drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
+drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
+flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 % CCA parameters
 flags.pcaf =  [0 0]; % no pca of X or AUX
 flags.shrink = true;
@@ -62,7 +64,7 @@ motionflag = true;
 %plot flag
 flag_plot = true;
 % include tcca results or not in plots?
-flag_plotCCA = false;
+flag_plotCCA = true;
 
 
 % Validation parameters
@@ -76,9 +78,9 @@ cthresh = 0.3;
 tic;
 
 %% Eval plot flag (developing/debugging purposes only)
-evalplotflag = 1; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
-evalplotflag_glm = 1; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
-flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
+evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
+evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
+
 
 
 for sbj = 1:numel(sbjfolder) % loop across subjects
@@ -135,10 +137,11 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         %% convert testing fNIRS data to concentration and detect motion artifacts
         dod = hmrIntensity2OD(d(tstIDX,:));
         s = s(tstIDX,:);
+        t = t(tstIDX,:);
         
         if motionflag
             [tIncAuto] = hmrMotionArtifact(dod,fq,SD,ones(size(d,1),1),0.5,1,30,5);
-            [s,tRangeStimReject] = enStimRejection(t(tstIDX,:),s,tIncAuto,ones(size(d,1),1),[-2  10]);
+            [s,tRangeStimReject] = enStimRejection(t,s,tIncAuto,ones(size(d,1),1),[-2  10]);
         end
         
         dod = hmrBandpassFilt(dod, fq, 0, 0.5);
@@ -157,23 +160,22 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
             
             % training
-            dod_stitched = [dod(1:pre_stim,:);(dod(post_stim:end,:)-(dod(post_stim,:)-dod(pre_stim,:)))];
-            dc_stitched = hmrOD2Conc(dod_stitched, SD, [6 6]);
-            s_stitched = s([1:pre_stim,post_stim:size(dod,1)],:);
-            t_stitched = t(1:size(s_stitched,1));
-            
-            % estimate HRF from training data
-            [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc_stitched, s_stitched, t_stitched, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, 0, 0,hrf,lstHrfAdd{sbj},0);
-            
+                dod_new = dod; dod_new([pre_stim:post_stim],:) = 0;
+                dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
+                s_new = s; s_new([pre_stim:post_stim],:) = 0;
+                % estimate HRF from training data
+                [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0,[pre_stim post_stim]);
+      
+              
             %% Save normal raw data (single trials)
             y_raw(:,:,:,os)= dc{tt}(pre_stim:post_stim,:,:);
             
             
             %% Perform GLM with SS
             [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,os), yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm );
-            
+                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
+       
             %% CCA with optimum parameters
             tl = tlags;
             sts = stpsize;
@@ -183,15 +185,15 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
             param.NumOfEmb = ceil(tl*fq / sts);
             
-            %% Temporal embedding of auxiliary data from testing split
-            %                 aux_sigs = AUX(tstIDX,:);
-            aux_sigs = AUX(pre_stim:post_stim,:);
-            aux_emb = aux_sigs;
-            for i=1:param.NumOfEmb
-                aux=circshift( aux_sigs, i*param.tau, 1);
-                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                aux_emb=[aux_emb aux];
-            end
+                %% Temporal embedding of auxiliary data from testing split
+                aux_sigs = AUX(tstIDX,:);
+                aux_sigs = aux_sigs(pre_stim:post_stim,:);
+                aux_emb = aux_sigs;
+                for i=1:param.NumOfEmb
+                    aux=circshift( aux_sigs, i*param.tau, 1);
+                    aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+                    aux_emb=[aux_emb aux];
+                end
             
             % zscore
             aux_emb=zscore(aux_emb);
@@ -215,10 +217,10 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% Calculate testig regressors with CCA mapping matrix A from testing
             REG_tst = aux_emb*ADD_trn{tt}.Av_red;
             
-            %% Perform GLM with CCA
-            [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,os), yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0);
-            
+               %% Perform GLM with CCA
+                [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,os), yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
+                    hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+          
             if evalplotflag  % plotting all hrf added channels for a single subject
                 a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
                 figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)'); 
@@ -238,9 +240,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
              end
             % display current state:
             disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
-            %             foo_all_none(:,:,:,os) = yavg_ss;
-            %             foo_all_ss(:,:,:,os) = yavg_ss;
-            %             foo_all_cca(:,:,:,os) = yavg_ss;
         end
         
         if flag_hrf_resid
