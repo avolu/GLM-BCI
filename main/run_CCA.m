@@ -20,9 +20,9 @@ end
 
 % #####
 %% simulated data file names
-filename = 'resting_sim';
+filename = 'resting_sim_100_shorterHRF';
 %% load ground truth hrf
-hrf = load([path.code '\sim HRF\hrf_simdat_100.mat']);
+hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 %% save folder name
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
@@ -35,10 +35,10 @@ flag_save = 0;
 flag_conc = 1; % if 1 CCA inputs are in conc, if 0 CCA inputs are in intensity
 % results eval parameters
 eval_param.HRFmin = -2;
-eval_param.HRFmax = 17; % used only for block design runs
+eval_param.HRFmax = 15; % used only for block design runs
 eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
-eval_param.post = 10;
+eval_param.post = 8;
 flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing" 
 drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
 drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
@@ -50,18 +50,18 @@ flags.shrink = true;
 rtccaflag = true;
 
 % Features/structs for feature extraction function
-fparam.swdw=[0,4;10,17]; % need to discuss this selection!
+fparam.swdw=[0,4;8,15]; % need to discuss this selection!
 ival = [eval_param.HRFmin eval_param.HRFmax];
 
 % get features from ground truth
 hrfdat.x = hrf.hrf_conc;
-hrfdat.fs=25;
-hrfdat.t=hrf.t_hrf';
+hrfdat.fs = 25;
+hrfdat.t = hrf.t_hrf';
 [FVgt] = featureExtract(hrfdat, fparam);
 
 % motion artifact detection
 motionflag = true;
-%plot flag
+% plot flag
 flag_plot = true;
 % include tcca results or not in plots?
 flag_plotCCA = true;
