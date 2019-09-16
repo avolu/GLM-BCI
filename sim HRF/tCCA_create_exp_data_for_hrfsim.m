@@ -2,17 +2,17 @@
 melexflag = 1;
 if melexflag
     %Meryem
-    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\tCCA-GLM'; addpath(genpath(path.code)); % code directory
+    path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER'; % data directory
 else
     %Alex
-    path.code = 'D:\Office\Research\Software - Scripts\Matlab\Regression tCCA GLM\tCCA-GLM'; addpath(genpath(path.code)); % code directory
+    path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER'; % data directory
 end
 
 path.fname = 'resting.nirs';
-path.hrfname = 'hrf_simdat_100.mat';
-path.savename = 'resting_sim.nirs';
+path.hrfname = 'hrf_simdat_100_shorterHRF.mat';
+path.savename = 'resting_sim_100_shorterHRF.nirs';
 addpath(genpath(path.code));
 sbjfolder = {'Subj33','Subj34','Subj36','Subj37','Subj38','Subj39', 'Subj40', 'Subj41', 'Subj43', 'Subj44','Subj46','Subj47','Subj49','Subj51'};
 

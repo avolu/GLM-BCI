@@ -85,7 +85,7 @@ maxoffs = 3.5; % max offset in seconds
 onsidx = onsidx+ceil(rand(numel(onsidx),1) * maxoffs*nirs_hrf.fs)';
 % create new s field and add triggers
 nirs_hrf.s = zeros(numel(nirs_hrf.s),1);
-nirs_hrf.s(onsidx) = 1;
+nirs_hrf.s(onsidx(1:2:numel(onsidx))) = 1;
 
 
 %% Add sim HRFs to selected channels at generated time points
@@ -97,7 +97,7 @@ if utest % builds hrfs onto constant (ones) signal
 end
 
 % for all windows/onset timings
-for oo = 1:numel(onsidx)
+for oo = 1:2:numel(onsidx) % skipping every other stimulus 
     % indices (samples) within window
     widxes = onsidx(oo):1:onsidx(oo)+hrflen-1;
     % for all selected channels
