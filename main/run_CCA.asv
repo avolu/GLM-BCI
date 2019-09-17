@@ -187,12 +187,12 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             [HRF_regressor_SS, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
                 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
-                [pre_stim_t(os)  post_stim_t(os)]); %% MERYEM
+                [pre_stim_t{1}(os)  post_stim_t{2}(os)]); %% MERYEM
             
             % *****************************************************
             %% estimate HRF regressor with GLM with tCCA from all training trials
             % *****************************************************
-            %% first: learn tCCA filters
+            %% learn tCCA filters
             param.NumOfEmb = ceil(tl*fq / sts);
             % Temporal embedding of auxiliary data from training split to
             % learn the
@@ -210,17 +210,25 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             X = d0_long(trnIDX,:);
             % new tCCA with shrinkage
             [REG_trn,  ADD_trn] = rtcca(X,AUX(trnIDX,:),param,flags);
-            disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
             % save trained tCCA filter matrix (first tcca_nReg regressors)
             Atcca = ADD_trn.Av(:,1:tcca_nReg);
-            % GLM with tCCA: generate HRF regressor
+            % generate HRF training regressor and zero elements from test trial pre-stimulus to the end of the following rest block
+            
+            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0; %% MERYEM
+            dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
+            s_new = s; s_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
+            
+            REG_tcca = REG_tst(:,1:tcca_nReg);
+            
             [HRF_regressor_CCA, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
+                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, REG_tcca, [], [eval_param.HRFmin eval_param.HRFmax], ...
                 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
-                [pre_stim_t(os)  post_stim_t(os)]); %% MERYEM
+                [pre_stim_t{1}(os)  post_stim_t{2}(os)]); %% MERYEM
             
             
+            % *****************************************************
             %% calculate single trial HRF estimates using HRF regressor and pre-used single training trials, as well as unseen test block
+            % *****************************************************
             % results are used for feature-extraction and classifier
             % training + testing, while statistics of unseen test block are
             % only used for generating the test feature vector for the
@@ -230,8 +238,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 %% Save normal raw data (single trials)
                 y_raw(:,:,:,k)= dc{tt}(pre_stim_t(os):post_stim_t(os),:,:);
                 y_raw_rest(:,:,:,k)= dc{tt}(pre_stim_t(os):post_stim_t(os),:,:);
-                
-                
                 
                 
                 %% Perform GLM on single trials
@@ -269,17 +275,14 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                         hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
                         s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
                         t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
-                        SD, REG_tst_red, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                        SD, REG_tcca, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
                         squeeze(HRF_regressor_CCA(:,:,:,cc)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
-                    
-                    if flag_hrf_resid
-                        
-                        yavg_ss = ynew_ss;
-                        yavg_ss_rest = ynew_ss_rest;
-                        yavg_cca = ynew_cca;
-                        yavg_cca_rest = ynew_cca_rest;
-                        
-                    end
+                end
+                
+                % use HRF + residual?
+                if flag_hrf_resid
+                    yavg_ss = ynew_ss;
+                    yavg_cca = ynew_cca;
                 end
                 
                 
@@ -305,19 +308,22 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             
             %% get features/markers
             % stim on blocks
-            % short separation
-            [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
-            % short separation
-            [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
-            % tCCA
-            [FMcca{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_cca, fparam, ival, hrf);
-            % rest blocks
-            % short separation
-            [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw_rest, fparam, ival, hrf);
-            % short separation
-            [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss_rest, fparam, ival, hrf);
-            % tCCA
-            [FMcca{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_cca_rest, fparam, ival, hrf);
+            % for both conditions
+            for cc=1:2
+                % short separation
+                [FMdc{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
+                % short separation
+                [FMss{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc), fparam, ival, hrf);
+                % tCCA
+                [FMcca{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_cca(:,:,:,:,cc), fparam, ival, hrf);
+                % rest blocks
+                % short separation
+                [FMdc{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(y_raw_rest(:,:,:,:,cc), fparam, ival, hrf);
+                % short separation
+                [FMss{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_ss_rest(:,:,:,:,cc), fparam, ival, hrf);
+                % tCCA
+                [FMcca{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_cca_rest(:,:,:,:,cc), fparam, ival, hrf);
+            end
         end
     end
     % clear vars
