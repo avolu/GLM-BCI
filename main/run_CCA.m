@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -41,7 +41,7 @@ eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 8;
 flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing"
 drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
-drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
+polyOrder_drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 % CCA parameters
 flags.pcaf =  [0 0]; % no pca of X or AUX
@@ -74,8 +74,19 @@ flag_plotCCA = true;
 tlags = 3;
 stpsize = 2;
 cthresh = 0.3;
+%% CCA with optimum parameters
+tl = tlags;
+sts = stpsize;
+ctr = cthresh;
 
-tic;
+% set stepsize for CCA
+param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+% set correlation trheshold for CCA to 0 so we dont lose anything within
+% the tCCA function
+param.ct = 0;   % correlation threshold
+% set number of tCCA regressors used for GLM
+tcca_nReg = 2;
+
 
 %% Eval plot flag (developing/debugging purposes only)
 evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
@@ -84,20 +95,10 @@ evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift e
 %% dimensions
 % beta [# of basis] X [HbO/R] X [# of channels]
 
-
+%% GO
+tic;
 for sbj = 1:numel(sbjfolder) % loop across subjects
     disp(['subject #' num2str(sbj)]);
-    
-    %% (re-)initialize result matrices
-    nTrials= NaN(2,numel(tlags),numel(stpsize),numel(cthresh));
-    DET_SS= NaN(34,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    DET_CCA= NaN(34,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    pval_SS = NaN(34,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    pval_CCA = NaN(34,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    MSE_SS = NaN(16,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    MSE_CCA = NaN(16,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    CORR_SS = NaN(16,2,2,numel(tlags),numel(stpsize),numel(cthresh));
-    CORR_CCA = NaN(16,2,2,numel(tlags),numel(stpsize),numel(cthresh));
     
     % change to subject directory
     cd([path.dir filesep sbjfolder{sbj} filesep]);
@@ -111,7 +112,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     AUX = [AUX, d0_short]; % full AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
     %% zscore AUX signals
     AUX = zscore(AUX);
-    
     
     %% check if the number of time points is odd/even, if odd make it even... (number of embedded should be the same)
     if mod(size(AUX,1),2) == 1
@@ -140,12 +140,12 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         dod = hmrIntensity2OD(d(tstIDX,:));
         s = s(tstIDX,:);
         t = t(tstIDX,:);
-        
+        % motion artifact removal?
         if motionflag
             [tIncAuto] = hmrMotionArtifact(dod,fq,SD,ones(size(d,1),1),0.5,1,30,5);
             [s,tRangeStimReject] = enStimRejection(t,s,tIncAuto,ones(size(d,1),1),[-2  10]);
-        end           
-        
+        end
+        % conversion
         dod = hmrBandpassFilt(dod, fq, 0, 0.5);
         dc{tt} = hmrOD2Conc( dod, SD, [6 6]);
         
@@ -164,143 +164,150 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             onset_stim(end) = [];
         end
         
+        % all pre/post stimulus timings for both conditions
+        %       cc = 1 (HRF),% cc = 2 (rest)
+        pre_stim_t{1} = onset_stim+eval_param.HRFmin*fq;
+        post_stim_t{1} = onset_stim+eval_param.HRFmax*fq;
+        pre_stim_t{2} = onset_stim_rest+eval_param.HRFmin*fq;
+        post_stim_t{2} = onset_stim_rest+eval_param.HRFmax*fq;
+        
         for os = 1:size(onset_stim,1)%% loop around each stimulus
+            % write train/test flag matrix
+            TTM{sbj}.tstidx(os)=os;
+            TTM{sbj}.tnridx(os,:) = setdiff(1:size(onset_stim,1), os);
             
-            %             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
-            %             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
-            
-            % training
+            % *****************************************************
+            %% estimate HRF regressor with GLM with SS from all training trials
+            % *****************************************************
             % zero elements from pre-stimulus to the end of the following rest block
-            dod_new = dod; dod_new([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim_rest(os)+eval_param.HRFmax*fq],:) = 0;
+            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0; %% MERYEM
             dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
-            s_new = s; s_new([[onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim_rest(os)+eval_param.HRFmax*fq]],:) = 0;
-            % estimate HRF from training data
-            [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0,[[onset_stim(os)+eval_param.HRFmin*fq] [onset_stim_rest(os)+eval_param.HRFmax*fq]]);
+            s_new = s; s_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
+            % GLM with SS: generate HRF regressor
+            [HRF_regressor_SS, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
+                1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
+                [pre_stim_t(os)  post_stim_t(os)]); %% MERYEM
             
-            for k = setdiff(1:size(onset_stim,1), os) % loop around the rest of the blocks (i.e. excluding classifier test block)
-            
-            %% Save normal raw data (single trials)
-            y_raw(:,:,:,k)= dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:);
-            y_raw_rest(:,:,:,k)= dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:);
-            
-            
-            
-            %% Perform GLM with SS
-            [yavg_ss(:,:,:,k), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,k), yresid_ss, ysum2_ss, beta_ss(:,:,:,k), yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:), s([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],1), t([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,1)), rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
-            
-            [yavg_ss_rest(:,:,:,k), yavgstd_ss, tHRF, nTrialsSS, ynew_ss_rest(:,:,:,k), yresid_ss_rest, ysum2_ss, beta_ss(:,:,:,k), yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:), s([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],2), t([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,2)), rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
-            
-            %% CCA with optimum parameters
-            tl = tlags;
-            sts = stpsize;
-            ctr = cthresh;
-            
-            %% set stepsize for CCA
-            param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+            % *****************************************************
+            %% estimate HRF regressor with GLM with tCCA from all training trials
+            % *****************************************************
+            %% learn tCCA filters
             param.NumOfEmb = ceil(tl*fq / sts);
-            
-            %% Temporal embedding of auxiliary data from testing split
-            aux_sigs = AUX(tstIDX,:);
-            aux_sigs = aux_sigs([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:);
+            % Temporal embedding of auxiliary data from training split to
+            % learn the
+            aux_sigs = AUX(trnIDX,:);
             aux_emb = aux_sigs;
             for i=1:param.NumOfEmb
                 aux=circshift(aux_sigs, i*param.tau, 1);
                 aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
                 aux_emb=[aux_emb aux];
             end
-            
             % zscore
             aux_emb=zscore(aux_emb);
-            % set correlation trheshold for CCA to 0 so we dont lose anything here
-            param.ct = 0;   % correlation threshold
             % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
             % use test data of LD channels without synth HRF
             X = d0_long(trnIDX,:);
             % new tCCA with shrinkage
-            [REG_trn{tt},  ADD_trn{tt}] = rtcca(X,AUX(trnIDX,:),param,flags);
-            
+            [REG_trn,  ADD_trn] = rtcca(X,AUX(trnIDX,:),param,flags);
             disp(['split: ' num2str(tt) ', tlag: ' num2str(tl) ', stsize: ' num2str(sts) ', ctrhesh: ' num2str(ctr)])
-            
-            %% now use correlation threshold for CCA outside of function to avoid redundant CCA recalculation
-            % overwrite: auxiliary cca components that have
-            % correlation > ctr
-            compindex=find(ADD_trn{tt}.ccac>ctr);
-            %overwrite: reduced mapping matrix Av
-            ADD_trn{tt}.Av_red = ADD_trn{tt}.Av(:,compindex);
-            
-            %% Calculate testig regressors with CCA mapping matrix A from testing
-            REG_tst = aux_emb*ADD_trn{tt}.Av_red;
-            
-            %% Perform GLM with CCA
-            [yavg_cca(:,:,:,k), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k), yresid_cca, ysum2_cca, beta_cca(:,:,:,k), yR_cca] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:), s([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],1), t([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,1)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
-            
-            % tCCA GLM for the rest periods
-            %% Temporal embedding of auxiliary data from testing split
-            aux_sigs = AUX(tstIDX,:);
-            aux_sigs_rest = aux_sigs([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:);
-            aux_emb = aux_sigs_rest;
-            for i=1:param.NumOfEmb
-                aux=circshift(aux_sigs_rest, i*param.tau, 1);
-                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                aux_emb=[aux_emb aux];
-            end
-            
-            % zscore
-            aux_emb=zscore(aux_emb);
-            param.ct = 0;   % correlation threshold
-            REG_tst_rest = aux_emb*ADD_trn{tt}.Av_red;
-            
-            %% Perform GLM with CCA
-            [yavg_cca_rest(:,:,:,k), yavgstd_cca, tHRF, nTrials(tt), ynew_cca_rest(:,:,:,k), yresid_cca_rest, ysum2_cca, beta_cca(:,:,:,k), yR_cca] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:), s([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],2), t([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:), SD, REG_tst_rest, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,2)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+            % save trained tCCA filter matrix (first tcca_nReg regressors)
+            Atcca = ADD_trn.Av(:,1:tcca_nReg);
+            %% GLM with tCCA: generate HRF regressor
+            [HRF_regressor_CCA, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
+                1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
+                [pre_stim_t(os)  post_stim_t(os)]); %% MERYEM
             
             
-            
-            if evalplotflag  % plotting all hrf added channels for a single subject
-                a=dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq],:,:)-repmat(mean(dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:onset_stim(os),:,:),1),numel([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq]),1);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
-                subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)');
-                subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
-                subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+            %% calculate single trial HRF estimates using HRF regressor and pre-used single training trials, as well as unseen test block
+            % results are used for feature-extraction and classifier
+            % training + testing, while statistics of unseen test block are
+            % only used for generating the test feature vector for the
+            % classifier
+            for k = 1:size(onset_stim,1)%% loop around each stimulus
+                
+                %% Save normal raw data (single trials)
+                y_raw(:,:,:,k)= dc{tt}(pre_stim_t(os):post_stim_t(os),:,:);
+                y_raw_rest(:,:,:,k)= dc{tt}(pre_stim_t(os):post_stim_t(os),:,:);
                 
                 
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
-                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)');
-                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
-                subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                %% Perform GLM on single trials
+                % for both conditions cc = 1 (HRF) and cc = 2 (rest)
+                for cc=1:2
+                    %% GLM with SS
+                    [yavg_ss(:,:,:,k,cc), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,k,cc), yresid_ss, ysum2_ss, beta_ss(:,:,:,k,cc), yR_ss] = ...
+                        hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
+                        s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
+                        t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
+                        SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                        squeeze(HRF_regressor_SS(:,:,:,cc)), rhoSD_ssThresh, 1, drift_term, ...
+                        0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
+                    
+                    
+                    %%  GLM with tCCA
+                    % for both conditions cc = 1 (HRF) and cc = 2 (rest)
+                    aux_sigs = AUX(tstIDX,:);
+                    %% generate tCCA GLM regressors
+                    % Temporal embedding of auxiliary data from testing split
+                    aux_sigs_rest = aux_sigs(pre_stim_t{cc}(k):post_stim_t{cc}(k),:);
+                    aux_emb = aux_sigs_rest;
+                    for i=1:param.NumOfEmb
+                        aux=circshift(aux_sigs_rest, i*param.tau, 1);
+                        aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+                        aux_emb=[aux_emb aux];
+                    end
+                    % zscore
+                    aux_emb=zscore(aux_emb);
+                    %% Calculate testig regressors with trained CCA mapping matrix A
+                    REG_tcca = aux_emb*Atcca;
+                    
+                    %% Perform GLM with CCA
+                    [yavg_cca(:,:,:,k,cc), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k,cc), yresid_cca, ysum2_cca, beta_cca(:,:,:,k,cc), yR_cca] = ...
+                        hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
+                        s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
+                        t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
+                        SD, REG_tst_red, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                        squeeze(HRF_regressor_CCA(:,:,:,cc)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+                end
+                
+                % use HRF + residual?
+                if flag_hrf_resid
+                    yavg_ss = ynew_ss;
+                    yavg_cca = ynew_cca;
+                end
+                
+                
+                if evalplotflag  % plotting all hrf added channels for a single subject
+                    a=dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq],:,:)-repmat(mean(dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:onset_stim(os),:,:),1),numel([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq]),1);
+                    figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
+                    subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                    subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                    figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)');
+                    subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                    subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                    
+                    figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
+                    subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                    subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
+                    figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)');
+                    subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                    subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
+                end
+                % display current state:
+                disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
             end
-            % display current state:
-            disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
-        end
-        
-        if flag_hrf_resid
             
-            yavg_ss = ynew_ss;
-            yavg_ss_rest = ynew_ss_rest;
-            yavg_cca = ynew_cca;
-            yavg_cca_rest = ynew_cca_rest;
-            
-        end
-        
-        
-        %% get features/markers
-        % stim on blocks
+            %% get features/markers
+            % stim on blocks
             % short separation
             [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
             % short separation
             [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
             % tCCA
             [FMcca{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_cca, fparam, ival, hrf);
-        % rest blocks
-             % short separation
+            % rest blocks
+            % short separation
             [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw_rest, fparam, ival, hrf);
             % short separation
             [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss_rest, fparam, ival, hrf);
