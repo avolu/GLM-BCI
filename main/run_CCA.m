@@ -195,16 +195,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% learn tCCA filters
             param.NumOfEmb = ceil(tl*fq / sts);
             % Temporal embedding of auxiliary data from training split to
-            % learn the
-            aux_sigs = AUX(trnIDX,:);
-            aux_emb = aux_sigs;
-            for i=1:param.NumOfEmb
-                aux=circshift(aux_sigs, i*param.tau, 1);
-                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                aux_emb=[aux_emb aux];
-            end
-            % zscore
-            aux_emb=zscore(aux_emb);
+            % learn the filter matrix
             % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
             % use test data of LD channels without synth HRF
             X = d0_long(trnIDX,:);
@@ -213,15 +204,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % save trained tCCA filter matrix (first tcca_nReg regressors)
             Atcca = ADD_trn.Av(:,1:tcca_nReg);
             %% generate tCCA regressor and zero elements from test trial pre-stimulus to the end of the following rest block
-            aux_sigs = AUX(tstIDX,:);
-            aux_emb = aux_sigs;
-            for i=1:param.NumOfEmb
-                aux=circshift(aux_sigs, i*param.tau, 1);
-                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                aux_emb=[aux_emb aux];
-            end
-            % zscore
-            aux_emb=zscore(aux_emb);
+            aux_emb = tembz(AUX(tstIDX,:), param);
             % calculate tcca regressors
             REG_tcca = aux_emb*Atcca;
             % zero out test blocks
