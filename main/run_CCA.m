@@ -39,7 +39,7 @@ eval_param.HRFmax = 15; % used only for block design runs
 eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 8;
-flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing" 
+flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing"
 drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
 drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
@@ -60,7 +60,7 @@ hrfdat.t = hrf.t_hrf';
 [FVgt] = featureExtract(hrfdat, fparam);
 
 % motion artifact detection
-motionflag = true;
+motionflag = false;
 % plot flag
 flag_plot = true;
 % include tcca results or not in plots?
@@ -81,6 +81,8 @@ tic;
 evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
 evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
 
+%% dimensions
+% beta [# of basis] X [HbO/R] X [# of channels]
 
 
 for sbj = 1:numel(sbjfolder) % loop across subjects
@@ -142,40 +144,55 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         if motionflag
             [tIncAuto] = hmrMotionArtifact(dod,fq,SD,ones(size(d,1),1),0.5,1,30,5);
             [s,tRangeStimReject] = enStimRejection(t,s,tIncAuto,ones(size(d,1),1),[-2  10]);
-        end
+        end           
         
         dod = hmrBandpassFilt(dod, fq, 0, 0.5);
         dc{tt} = hmrOD2Conc( dod, SD, [6 6]);
         
         %% run test and train CV splits
-        onset_stim = find(s==1);
+        onset_stim = find(s(:,1)==1); % condition 1: stimulus
+        onset_stim_rest = find(s(:,2)==1); % condition 2: rest
+        
+        % in case of a really early stim not allowing prestim period
         if onset_stim(1) < abs(eval_param.HRFmin*fq)
             onset_stim(1) = [];
+            onset_stim_rest(1) = [];
         end
         
+        % in case there is no rest block after the last stim block
+        if onset_stim(end)>onset_stim_rest(end)
+            onset_stim(end) = [];
+        end
         
         for os = 1:size(onset_stim,1)%% loop around each stimulus
             
-            pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
-            post_stim = onset_stim(os)+eval_param.HRFmax*fq;
+            %             pre_stim = onset_stim(os)+eval_param.HRFmin*fq;
+            %             post_stim = onset_stim(os)+eval_param.HRFmax*fq;
             
             % training
-                dod_new = dod; dod_new([pre_stim:post_stim],:) = 0;
-                dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
-                s_new = s; s_new([pre_stim:post_stim],:) = 0;
-                % estimate HRF from training data
-                [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0,[pre_stim post_stim]);
-      
-              
+            % zero elements from pre-stimulus to the end of the following rest block
+            dod_new = dod; dod_new([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim_rest(os)+eval_param.HRFmax*fq],:) = 0;
+            dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
+            s_new = s; s_new([[onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim_rest(os)+eval_param.HRFmax*fq]],:) = 0;
+            % estimate HRF from training data
+            [yavg_ss_estimate, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0,[[onset_stim(os)+eval_param.HRFmin*fq] [onset_stim_rest(os)+eval_param.HRFmax*fq]]);
+            
+            for k = setdiff(1:size(onset_stim,1), os) % loop around the rest of the blocks (i.e. excluding classifier test block)
+            
             %% Save normal raw data (single trials)
-            y_raw(:,:,:,os)= dc{tt}(pre_stim:post_stim,:,:);
+            y_raw(:,:,:,k)= dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:);
+            y_raw_rest(:,:,:,k)= dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:);
+            
             
             
             %% Perform GLM with SS
-            [yavg_ss(:,:,:,os), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,os), yresid_ss, ysum2_ss, beta_ss, yR_ss] = ...
-                hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
-       
+            [yavg_ss(:,:,:,k), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,k), yresid_ss, ysum2_ss, beta_ss(:,:,:,k), yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:), s([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],1), t([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,1)), rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
+            
+            [yavg_ss_rest(:,:,:,k), yavgstd_ss, tHRF, nTrialsSS, ynew_ss_rest(:,:,:,k), yresid_ss_rest, ysum2_ss, beta_ss(:,:,:,k), yR_ss] = ...
+                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:), s([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],2), t([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:), SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,2)), rhoSD_ssThresh, 1, drift_term, 0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
+            
             %% CCA with optimum parameters
             tl = tlags;
             sts = stpsize;
@@ -185,15 +202,15 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
             param.NumOfEmb = ceil(tl*fq / sts);
             
-                %% Temporal embedding of auxiliary data from testing split
-                aux_sigs = AUX(tstIDX,:);
-                aux_sigs = aux_sigs(pre_stim:post_stim,:);
-                aux_emb = aux_sigs;
-                for i=1:param.NumOfEmb
-                    aux=circshift( aux_sigs, i*param.tau, 1);
-                    aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                    aux_emb=[aux_emb aux];
-                end
+            %% Temporal embedding of auxiliary data from testing split
+            aux_sigs = AUX(tstIDX,:);
+            aux_sigs = aux_sigs([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:);
+            aux_emb = aux_sigs;
+            for i=1:param.NumOfEmb
+                aux=circshift(aux_sigs, i*param.tau, 1);
+                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+                aux_emb=[aux_emb aux];
+            end
             
             % zscore
             aux_emb=zscore(aux_emb);
@@ -217,27 +234,49 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% Calculate testig regressors with CCA mapping matrix A from testing
             REG_tst = aux_emb*ADD_trn{tt}.Av_red;
             
-               %% Perform GLM with CCA
-                [yavg_cca(:,:,:,os), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,os), yresid_cca, ysum2_cca, beta_cca, yR_cca] = ...
-                    hmrDeconvHRF_DriftSS(dc{tt}(pre_stim:post_stim,:,:), s(pre_stim:post_stim,:), t(pre_stim:post_stim,:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, yavg_ss_estimate, 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
-          
+            %% Perform GLM with CCA
+            [yavg_cca(:,:,:,k), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k), yresid_cca, ysum2_cca, beta_cca(:,:,:,k), yR_cca] = ...
+                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:,:), s([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],1), t([onset_stim(k)+eval_param.HRFmin*fq]:[onset_stim(k)+eval_param.HRFmax*fq],:), SD, REG_tst, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,1)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+            
+            % tCCA GLM for the rest periods
+            %% Temporal embedding of auxiliary data from testing split
+            aux_sigs = AUX(tstIDX,:);
+            aux_sigs_rest = aux_sigs([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:);
+            aux_emb = aux_sigs_rest;
+            for i=1:param.NumOfEmb
+                aux=circshift(aux_sigs_rest, i*param.tau, 1);
+                aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
+                aux_emb=[aux_emb aux];
+            end
+            
+            % zscore
+            aux_emb=zscore(aux_emb);
+            param.ct = 0;   % correlation threshold
+            REG_tst_rest = aux_emb*ADD_trn{tt}.Av_red;
+            
+            %% Perform GLM with CCA
+            [yavg_cca_rest(:,:,:,k), yavgstd_cca, tHRF, nTrials(tt), ynew_cca_rest(:,:,:,k), yresid_cca_rest, ysum2_cca, beta_cca(:,:,:,k), yR_cca] = ...
+                hmrDeconvHRF_DriftSS(dc{tt}([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:,:), s([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],2), t([onset_stim_rest(k)+eval_param.HRFmin*fq]:[onset_stim_rest(k)+eval_param.HRFmax*fq],:), SD, REG_tst_rest, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, squeeze(yavg_ss_estimate(:,:,:,2)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+            
+            
+            
             if evalplotflag  % plotting all hrf added channels for a single subject
-                a=dc{tt}(pre_stim:post_stim,:,:)-repmat(mean(dc{tt}(pre_stim:onset_stim(os),:,:),1),numel(pre_stim:post_stim),1);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)'); 
+                a=dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq],:,:)-repmat(mean(dc{tt}([onset_stim(os)+eval_param.HRFmin*fq]:onset_stim(os),:,:),1),numel([onset_stim(os)+eval_param.HRFmin*fq]:[onset_stim(os)+eval_param.HRFmax*fq]),1);
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf only)');
                 subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)'); 
-                subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2); 
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf only)');
+                subplot(1,3,2);plot(tHRF,squeeze(yavg_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(yavg_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 
                 
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)'); 
-                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2); 
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,1,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 1.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);ylabel('HbO (hrf+resid)');
+                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,1,lstHrfAdd{sbj}(:,1),os))); ylim([-1e-6 1.5e-6]);title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,1,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 1.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,1),'k','LineWidth',2);
-                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)'); 
-                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2); 
+                figure;subplot(1,3,1);plot(tHRF,squeeze(a(:,2,lstHrfAdd{sbj}(:,1))));ylim([-1e-6 0.5e-6]);title('none'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);ylabel('HbR (hrf+resid)');
+                subplot(1,3,2);plot(tHRF,squeeze(ynew_ss(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]); title('ss'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
                 subplot(1,3,3);plot(tHRF,squeeze(ynew_cca(:,2,lstHrfAdd{sbj}(:,1),os)));ylim([-1e-6 0.5e-6]);title('cca'); hold on; plot(hrf.t_hrf,hrf.hrf_conc(:,2),'k','LineWidth',2);
-             end
+            end
             % display current state:
             disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
         end
@@ -245,18 +284,29 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         if flag_hrf_resid
             
             yavg_ss = ynew_ss;
+            yavg_ss_rest = ynew_ss_rest;
             yavg_cca = ynew_cca;
+            yavg_cca_rest = ynew_cca_rest;
             
         end
         
         
         %% get features/markers
-        % short separation
-        [FMdc{sbj}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
-        % short separation
-        [FMss{sbj}, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
-        % tCCA
-        [FMcca{sbj}, clab] = getFeaturesAndMetrics(yavg_cca, fparam, ival, hrf);
+        % stim on blocks
+            % short separation
+            [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw, fparam, ival, hrf);
+            % short separation
+            [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss, fparam, ival, hrf);
+            % tCCA
+            [FMcca{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_cca, fparam, ival, hrf);
+        % rest blocks
+             % short separation
+            [FMdc{sbj}{os}, clab] = getFeaturesAndMetrics(y_raw_rest, fparam, ival, hrf);
+            % short separation
+            [FMss{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_ss_rest, fparam, ival, hrf);
+            % tCCA
+            [FMcca{sbj}{os}, clab] = getFeaturesAndMetrics(yavg_cca_rest, fparam, ival, hrf);
+        end
     end
     % clear vars
     clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn

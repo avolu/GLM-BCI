@@ -334,7 +334,7 @@ for ii=2:(driftOrder+1)
     xDrift(:,ii) = xDrift(:,ii) / xDrift(end,ii);
 end
 if isempty(stim_timing) == 0 
-    xDrift([stim_timing(1):stim_timing(2)],:) = 0;
+    xDrift(stim_timing(1):stim_timing(2),:) = 0;
 end
 
 
@@ -470,7 +470,7 @@ for conc=1:2 %only HbO and HbR
                 lstML = find(iNearestSS(:,conc)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
                 % lstML = find(iNearestSS(:,conc)==mlSSlst(iSS));
                 Ass = y(:,conc,mlSSlst(iSS));
-                for i=1:size(lstML); % adding A ss on the channels that have highest corr with it.
+                for i = 1:size(lstML,1); % adding A ss on the channels that have highest corr with it.
                     At(:,:,lstML(i)) = [A(:,:,conc,lstML(i)) Ass];
                 end
             elseif flagSSmethod==2
@@ -491,7 +491,7 @@ for conc=1:2 %only HbO and HbR
                 ATA=At(lstInc,:)'*At(lstInc,:);
             elseif idxBasis == 5
                 %                 for iCh = 1:size(paramsBasis,3)
-                for i=1:size(lstML);
+                for i=1:size(lstML,1);
                     ATA(:,:,lstML(i))=At(lstInc,:,lstML(i))'*At(lstInc,:,lstML(i));
                 end
                 %                 end
@@ -580,6 +580,7 @@ for conc=1:2 %only HbO and HbR
                 end
             elseif idxBasis == 5
                 for iCond=1:nCond
+                    tb(:,lstML,conc,iCond)=foo([1:nB]+(iCond-1)*nB,lstML,conc);
                     %                 tb(:,lstML,conc,iCond)=foo([1:nB]+(iCond-1)*nB,lstML,conc);
                     %                yavg(:,lstML,conc,lstCond(iCond))=tbasis*tb(:,lstML,conc,lstCond(iCond));
                     for i = 1:size(lstML,1)
