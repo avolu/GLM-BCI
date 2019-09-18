@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -147,8 +147,8 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         end
         % conversion
         dod = hmrBandpassFilt(dod, fq, 0, 0.5);
-        dc{tt} = hmrOD2Conc( dod, SD, [6 6]);
-        
+        dc{tt} = hmrOD2Conc( dod, SD, [6 6]);        
+        dc_linear_detrend{tt} = linear_detrend(dc{tt}, t); % keeping this for no GLM
         %% run test and train CV splits
         onset_stim = find(s(:,1)==1); % condition 1: stimulus
         onset_stim_rest = find(s(:,2)==1); % condition 2: rest
@@ -229,7 +229,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 
                 %% Save normal raw data (single trials)
                 for cc=1:2
-                    y_raw(:,:,:,k,cc)= dc{tt}(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
+                    y_raw(:,:,:,k,cc)= dc_linear_detrend{tt}(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
                 end
                 
                 %% Perform GLM on single trials
