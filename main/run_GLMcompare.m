@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -50,7 +50,7 @@ flags.shrink = true;
 rtccaflag = true;
 
 % Features/structs for feature extraction function
-fparam.swdw=[0,4;8,15]; % need to discuss this selection!
+fparam.swdw=[0,4;8,11]; % need to discuss this selection!
 ival = [eval_param.HRFmin eval_param.HRFmax];
 
 % get features from ground truth
