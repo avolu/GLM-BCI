@@ -56,8 +56,6 @@ ival = [eval_param.HRFmin eval_param.HRFmax];
 % motion artifact detection
 motionflag = false;
 
-
-
 % Validation parameters
 % tlags = 0:1:10;
 % stpsize = 2:2:24;

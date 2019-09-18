@@ -46,6 +46,8 @@ F_SS_NoHrf=[];
 F_CCA_Hrf=[];
 F_CCA_NoHrf=[];
 for sbj = 1:numel(TTM)
+    % only look at the crossvalidated test results. These are stored where cell and trial index
+    % coincide (== os)
     for os = 1:numel(TTM{sbj}.tstidx)
         % for condition cc=1: sim HRF added
         for cc=1%:2
