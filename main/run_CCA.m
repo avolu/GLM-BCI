@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -180,14 +180,14 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% estimate HRF regressor with GLM with SS from all training trials
             % *****************************************************
             % zero elements from pre-stimulus to the end of the following rest block
-            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0; %% MERYEM
+            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0; 
             dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
             s_new = s; s_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
             % GLM with SS: generate HRF regressor
             [HRF_regressor_SS, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
                 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
-                [pre_stim_t{1}(os)  post_stim_t{2}(os)]); %% MERYEM
+                [pre_stim_t{1}(os)  post_stim_t{2}(os)]); 
             
             % *****************************************************
             %% estimate HRF regressor with GLM with tCCA from all training trials
@@ -203,10 +203,12 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             [REG_trn,  ADD_trn] = rtcca(X,AUX(trnIDX,:),param,flags);
             % save trained tCCA filter matrix (first tcca_nReg regressors)
             Atcca = ADD_trn.Av(:,1:tcca_nReg);
+            
             %% generate tCCA regressor and zero elements from test trial pre-stimulus to the end of the following rest block
             aux_emb = tembz(AUX(tstIDX,:), param);
             % calculate tcca regressors
-            REG_tcca = aux_emb*Atcca;
+            REG_tcca = aux_emb*Atcca;     
+                    
             % zero out test blocks
             REG_tcca(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
             %% Generate HRF regressor with GLM + tCCA and the tCCA regressor 
@@ -242,30 +244,12 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                         squeeze(HRF_regressor_SS(:,:,:,cc)), rhoSD_ssThresh, 1, drift_term, ...
                         0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
                     
-                    
-                    %%  GLM with tCCA
-                    % for both conditions cc = 1 (HRF) and cc = 2 (rest)
-                    aux_sigs = AUX(tstIDX,:);
-                    %% generate tCCA GLM regressors
-                    % Temporal embedding of auxiliary data from testing split
-                    aux_sigs_rest = aux_sigs(pre_stim_t{cc}(k):post_stim_t{cc}(k),:);
-                    aux_emb = aux_sigs_rest;
-                    for i=1:param.NumOfEmb
-                        aux=circshift(aux_sigs_rest, i*param.tau, 1);
-                        aux(1:2*i,:)=repmat(aux(2*i+1,:),2*i,1);
-                        aux_emb=[aux_emb aux];
-                    end
-                    % zscore
-                    aux_emb=zscore(aux_emb);
-                    %% Calculate testig regressors with trained CCA mapping matrix A
-                    REG_tcca = aux_emb*Atcca;
-                    
                     %% Perform GLM with CCA
                     [yavg_cca(:,:,:,k,cc), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k,cc), yresid_cca, ysum2_cca, beta_cca(:,:,:,k,cc), yR_cca] = ...
                         hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
                         s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
                         t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
-                        SD, REG_tcca, [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                        SD, REG_tcca(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
                         squeeze(HRF_regressor_CCA(:,:,:,cc)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
                 end
                 
