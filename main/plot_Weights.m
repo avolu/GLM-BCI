@@ -19,36 +19,19 @@ else
 end
 %% load data
 load([path.save '\FV_results.mat'])
-%% load ground truth hrf
-hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 
 % include tcca results in plots?
 flag_plotCCA = true;
 
-% Features/structs for feature extraction function
-eval_param.HRFmin = -2;
-eval_param.HRFmax = 15; % used only for block design runs
-fparam.swdw=[0,4;8,11]; % need to discuss this selection!
-ival = [eval_param.HRFmin eval_param.HRFmax];
-
-% get features from ground truth
-hrfdat.x = hrf.hrf_conc;
-hrfdat.fs = 25;
-hrfdat.t = hrf.t_hrf';
-[FVgt] = featureExtract(hrfdat, fparam);
-
 %% Get HRF features from all augmented channels to compare against  ground truth
 %Sort through results and append
-F_Raw_Hrf=[];
-F_Raw_NoHrf=[];
-F_SS_Hrf=[];
-F_SS_NoHrf=[];
-F_CCA_Hrf=[];
-F_CCA_NoHrf=[];
+W_SS_Hrf=[];
+W_SS_NoHrf=[];
+W_CCA_Hrf=[];
+W_CCA_NoHrf=[];
 for sbj = 1:numel(TTM)
+    % only look at the crossvalidated test results
     for os = 1:numel(TTM{sbj}.tstidx)
-        % for condition cc=1: sim HRF added
-        for cc=1%:2
             % channel indices that have or dont have gt HRF
             idxChHrf = lstHrfAdd{sbj}(:,1);
             idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
@@ -58,13 +41,13 @@ for sbj = 1:numel(TTM)
             % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
             % where F: # of Features, C: # Number of Chromophores, I: # of all
             % trials (epochs*channels)
-            F_Raw_Hrf = cat(3, F_Raw_Hrf, FMdc{sbj,os}(:,:,idxChHrf,os,cc));
-            F_Raw_NoHrf = cat(3, F_Raw_NoHrf, FMdc{sbj,os}(:,:,idxChNoHrf,os,cc));
-            F_SS_Hrf = cat(3, F_SS_Hrf, FMss{sbj,os}(:,:,idxChHrf,os,cc));
-            F_SS_NoHrf = cat(3, F_SS_NoHrf,FMss{sbj,os}(:,:,idxChNoHrf,os,cc));
-            F_CCA_Hrf = cat(3, F_CCA_Hrf, FMcca{sbj,os}(:,:,idxChHrf,os,cc));
-            F_CCA_NoHrf = cat(3, F_CCA_NoHrf, FMcca{sbj,os}(:,:,idxChNoHrf,os,cc));
-        end
+            
+            
+            
+            W_SS_Hrf = cat(3, W_SS_Hrf, reshape(FMss{sbj,os}(:,:,idxChHrf,:,cc),numel(FMclab),3,nHrf(3)*nHrf(4)));
+            W_SS_NoHrf = cat(3, W_SS_NoHrf, reshape(FMss{sbj,os}(:,:,idxChNoHrf,:,cc),numel(FMclab),3,nNoHrf(3)*nNoHrf(4)));
+            W_CCA_Hrf = cat(3, W_CCA_Hrf, reshape(FMcca{sbj,os}(:,:,idxChHrf,:,cc),numel(FMclab),3,nHrf(3)*nHrf(4)));
+            W_CCA_NoHrf = cat(3, W_CCA_NoHrf, reshape(FMcca{sbj,os}(:,:,idxChNoHrf,:,cc),numel(FMclab),3,nNoHrf(3)*nNoHrf(4)));
     end
 end
 
