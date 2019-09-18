@@ -17,7 +17,7 @@ else
     path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
     path.save = path.code; % save directory
 end
-
+%% load data
 load([path.save '\FV_results.mat'])
 
 
@@ -29,22 +29,23 @@ F_SS_NoHrf=[];
 F_CCA_Hrf=[];
 F_CCA_NoHrf=[];
 for sbj = 1:numel(sbjfolder)
-    % channel indices that have or dont have gt HRF
-    idxChHrf = lstHrfAdd{sbj}(:,1);
-    idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
-    % number of available channels
-    sHrf = size(FMdc{sbj}(:,:,idxChHrf,:));
-    sNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:));
-    % extract and append data, new dimension is F x C x I,
-    % where F: # of Features, C: # Number of Chromophores, I: # of all
-    % trials (epochs*channels)
-    F_Raw_Hrf = cat(3, F_Raw_Hrf, reshape(FMdc{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-    F_Raw_NoHrf = cat(3, F_Raw_NoHrf, reshape(FMdc{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
-    F_SS_Hrf = cat(3, F_SS_Hrf, reshape(FMss{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-    F_SS_NoHrf = cat(3, F_SS_NoHrf, reshape(FMss{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
-    F_CCA_Hrf = cat(3, F_CCA_Hrf, reshape(FMcca{sbj}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-    F_CCA_NoHrf = cat(3, F_CCA_NoHrf, reshape(FMcca{sbj}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
-    
+    for os = 1:numel(TTM{sbj}.tstidx)
+        % channel indices that have or dont have gt HRF
+        idxChHrf = lstHrfAdd{sbj}(:,1);
+        idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
+        % number of available channels
+        sHrf = size(FMdc{sbj}(:,:,idxChHrf,:));
+        sNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:));
+        % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
+        % where F: # of Features, C: # Number of Chromophores, I: # of all
+        % trials (epochs*channels)
+        F_Raw_Hrf = cat(3, F_Raw_Hrf, reshape(FMdc{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+        F_Raw_NoHrf = cat(3, F_Raw_NoHrf, reshape(FMdc{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+        F_SS_Hrf = cat(3, F_SS_Hrf, reshape(FMss{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+        F_SS_NoHrf = cat(3, F_SS_NoHrf, reshape(FMss{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+        F_CCA_Hrf = cat(3, F_CCA_Hrf, reshape(FMcca{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
+        F_CCA_NoHrf = cat(3, F_CCA_NoHrf, reshape(FMcca{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+    end
 end
 
 %% Paired T-Tests

@@ -302,7 +302,7 @@ end
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM');
+    save([path.save '\FV_results.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct');
 end
 
 toc;
