@@ -19,7 +19,23 @@ else
 end
 %% load data
 load([path.save '\FV_results.mat'])
+%% load ground truth hrf
+hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 
+% include tcca results or not in plots?
+flag_plotCCA = true;
+
+% Features/structs for feature extraction function
+eval_param.HRFmin = -2;
+eval_param.HRFmax = 15; % used only for block design runs
+fparam.swdw=[0,4;8,11]; % need to discuss this selection!
+ival = [eval_param.HRFmin eval_param.HRFmax];
+
+% get features from ground truth
+hrfdat.x = hrf.hrf_conc;
+hrfdat.fs = 25;
+hrfdat.t = hrf.t_hrf';
+[FVgt] = featureExtract(hrfdat, fparam);
 
 %% Sort through results and append
 F_Raw_Hrf=[];
@@ -28,23 +44,26 @@ F_SS_Hrf=[];
 F_SS_NoHrf=[];
 F_CCA_Hrf=[];
 F_CCA_NoHrf=[];
-for sbj = 1:numel(sbjfolder)
+for sbj = 1:numel(TTM)
     for os = 1:numel(TTM{sbj}.tstidx)
-        % channel indices that have or dont have gt HRF
-        idxChHrf = lstHrfAdd{sbj}(:,1);
-        idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
-        % number of available channels
-        sHrf = size(FMdc{sbj}(:,:,idxChHrf,:));
-        sNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:));
-        % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
-        % where F: # of Features, C: # Number of Chromophores, I: # of all
-        % trials (epochs*channels)
-        F_Raw_Hrf = cat(3, F_Raw_Hrf, reshape(FMdc{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-        F_Raw_NoHrf = cat(3, F_Raw_NoHrf, reshape(FMdc{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
-        F_SS_Hrf = cat(3, F_SS_Hrf, reshape(FMss{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-        F_SS_NoHrf = cat(3, F_SS_NoHrf, reshape(FMss{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
-        F_CCA_Hrf = cat(3, F_CCA_Hrf, reshape(FMcca{sbj,os}(:,:,idxChHrf,:),numel(clab),3,sHrf(3)*sHrf(4)));
-        F_CCA_NoHrf = cat(3, F_CCA_NoHrf, reshape(FMcca{sbj,os}(:,:,idxChNoHrf,:),numel(clab),3,sNoHrf(3)*sNoHrf(4)));
+        % for condition cc=1: sim HRF added
+        for cc=1%:2
+            % channel indices that have or dont have gt HRF
+            idxChHrf = lstHrfAdd{sbj}(:,1);
+            idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
+            % number of available channels
+            nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
+            nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
+            % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
+            % where F: # of Features, C: # Number of Chromophores, I: # of all
+            % trials (epochs*channels)
+            F_Raw_Hrf = cat(3, F_Raw_Hrf, reshape(FMdc{sbj,os}(:,:,idxChHrf,:,cc),numel(FMclab),3,nHrf(3)*nHrf(4)));
+            F_Raw_NoHrf = cat(3, F_Raw_NoHrf, reshape(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc),numel(FMclab),3,nNoHrf(3)*nNoHrf(4)));
+            F_SS_Hrf = cat(3, F_SS_Hrf, reshape(FMss{sbj,os}(:,:,idxChHrf,:,cc),numel(FMclab),3,nHrf(3)*nHrf(4)));
+            F_SS_NoHrf = cat(3, F_SS_NoHrf, reshape(FMss{sbj,os}(:,:,idxChNoHrf,:,cc),numel(FMclab),3,nNoHrf(3)*nNoHrf(4)));
+            F_CCA_Hrf = cat(3, F_CCA_Hrf, reshape(FMcca{sbj,os}(:,:,idxChHrf,:,cc),numel(FMclab),3,nHrf(3)*nHrf(4)));
+            F_CCA_NoHrf = cat(3, F_CCA_NoHrf, reshape(FMcca{sbj,os}(:,:,idxChNoHrf,:,cc),numel(FMclab),3,nNoHrf(3)*nNoHrf(4)));
+        end
     end
 end
 
@@ -100,7 +119,7 @@ for ff=1:9
             ylabel('Mol')
         end
         
-        title([clab{ff} chrom{cc}])
+        title([FMclab{ff} chrom{cc}])
     end
 end
 
@@ -130,7 +149,7 @@ for ff=1:9
                 boxplot([abs(squeeze(F_Raw_Hrf(ff,cc,:))-FVgt.x(ff,cc)), abs(squeeze(F_SS_Hrf(ff,cc,:))-FVgt.x(ff,cc))], 'labels', labels(1:2))
                 H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
             end
-            title(['ERR ' clab{ff} chrom{cc}])
+            title(['ERR ' FMclab{ff} chrom{cc}])
         else
             if flag_plotCCA
                 boxplot([squeeze(F_Raw_Hrf(ff,cc,:)), squeeze(F_SS_Hrf(ff,cc,:)), squeeze(F_CCA_Hrf(ff,cc,:))], 'labels', labels)
@@ -140,7 +159,7 @@ for ff=1:9
                 H=sigstar({[1,2]},squeeze(p_co(ff,cc,1)));
             end
             
-            title([clab{ff} chrom{cc}])
+            title([FMclab{ff} chrom{cc}])
         end
         
         

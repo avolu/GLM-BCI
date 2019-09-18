@@ -53,18 +53,9 @@ rtccaflag = true;
 fparam.swdw=[0,4;8,11]; % need to discuss this selection!
 ival = [eval_param.HRFmin eval_param.HRFmax];
 
-% get features from ground truth
-hrfdat.x = hrf.hrf_conc;
-hrfdat.fs = 25;
-hrfdat.t = hrf.t_hrf';
-[FVgt] = featureExtract(hrfdat, fparam);
-
 % motion artifact detection
 motionflag = false;
-% plot flag
-flag_plot = true;
-% include tcca results or not in plots?
-flag_plotCCA = true;
+
 
 
 % Validation parameters
@@ -284,11 +275,11 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % for both conditions
             for cc=1:2
                 % no GLM
-                [FMdc{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
+                [FMdc{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
                 % short separation GLM
-                [FMss{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc), fparam, ival, hrf);
+                [FMss{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc), fparam, ival, hrf);
                 % tCCA GLM
-                [FMcca{sbj,os}(:,:,:,:,cc), clab] = getFeaturesAndMetrics(yavg_cca(:,:,:,:,cc), fparam, ival, hrf);
+                [FMcca{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(yavg_cca(:,:,:,:,cc), fparam, ival, hrf);
             end
             %% save weights
             FWss{sbj,os}=beta_ss;
@@ -302,7 +293,7 @@ end
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct');
+    save([path.save '\FV_results.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;
