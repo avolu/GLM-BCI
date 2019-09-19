@@ -74,7 +74,7 @@ param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
 % the tCCA function
 param.ct = 0;   % correlation threshold
 % set number of tCCA regressors used for GLM
-tcca_nReg = 5;
+tcca_nReg = 2;
 
 
 %% Eval plot flag (developing/debugging purposes only)
@@ -120,7 +120,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     spltIDX = {1:floor(len/5),floor(len/5)+1:len};
     trntst = {[2,1], [1,2]};
     
-    %% run test and train CV splits
+    %% run test and train splits
     for tt = 1%1:2
         tstIDX = spltIDX{trntst{tt}(1)};
         trnIDX = spltIDX{trntst{tt}(2)};
@@ -164,6 +164,11 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % write train/test flag matrix
             TTM{sbj}.tstidx(os)=os;
             TTM{sbj}.tnridx(os,:) = setdiff(1:size(onset_stim,1), os);
+            
+            for cc=1:2
+                %% Save normal raw data in single trials and calculate features
+                y_raw(:,:,:,os,cc)= dc_linear_detrend{tt}(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
+            end
             
             % *****************************************************
             %% estimate HRF regressor with GLM with SS from all training trials
@@ -217,11 +222,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % only used for generating the test feature vector for the
             % classifier
             for k = 1:size(onset_stim,1)%% loop around each stimulus
-                
-                %% Save normal raw data (single trials)
-                for cc=1:2
-                    y_raw(:,:,:,k,cc)= dc_linear_detrend{tt}(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
-                end
                 
                 %% Perform GLM on single trials
                 % for both conditions cc = 1 (stim) and cc = 2 (rest)
@@ -279,8 +279,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             for cc=1:2
                 % for both regressors
                 for rr=1:2
-                    % no GLM
-                    [FMdc{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
                     % short separation GLM
                     [FMss{sbj,os}(:,:,:,:,cc,rr), FMclab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc,rr), fparam, ival, hrf);
                     % tCCA GLM
@@ -290,6 +288,10 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% save weights
             FWss{sbj,os}=beta_ss;
             FWcca{sbj,os}=beta_cca;
+        end
+        %% no GLM: feature extraction
+        for cc=1:2
+            [FMdc{sbj}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
         end
     end
     % clear vars

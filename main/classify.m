@@ -36,9 +36,42 @@ rr = 1;
 epo.className = {'STIM', 'REST'};
 epo.clab = FMclab;
 
+% for conventional NO GLM features
+gg=1;
+% select features
+% [ min, max, p2p, avg, t2p, slope w1, slope w2]
+fsel = [3,4,6,7];
+% for all subjects
+for sbj=1:numel(TTM)
+    % for all trials
+    for tt = 1:numel(TTM{sbj}.tstidx)
+        xTr{gg,sbj,tt} =[];
+        xTst{gg,sbj,tt}=[];
+        yTr{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
+        yTst{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
+        for cc=1:2
+            % train data  (from GLM with trained HRF regressor on seen training data)
+            % append features for hbo and hbr and all channels without SS
+            fvbuf = [];
+            fvbuf = squeeze(FMdc{sbj}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc));
+            xTr{gg,sbj,tt} = [xTr{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
+            % generate label vector
+            yTr{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
+            % test data (from GLM with trained HRF regressor on unseen data)
+            % append features for hbo and hbr and all channels without SS
+            fvbuf = [];
+            fvbuf = squeeze(FMdc{sbj}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+            xTst{gg,sbj,tt} = [xTst{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
+            % generate label vector
+            yTst{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
+        end
+    end
+end
+
+
 % for both GLM methods
-FW = {FWss, FWcca};
-for gg = 1:2
+FW = {[], FWss, FWcca};
+for gg = 2:3
     % for all subjects
     for sbj=1:numel(TTM)
         % for all trials
@@ -68,9 +101,11 @@ for gg = 1:2
 end
 
 
+
+
 %% CROSSVALIDATION using rLDA as classifier
-% for both GLM methods
-for gg = 1:2
+% for all methods (1> NO GLM, 2> GLM SS, 3> GLM CCA)
+for gg = 1:3
     % for all subjects
     for sbj=1:numel(TTM)
         % for all splits
@@ -89,9 +124,18 @@ for gg = 1:2
         lossAvg(gg,sbj) = mean(loss{gg,sbj}(:));
     end
 end
-accuracy = 1-lossAvg;
+accuracyGLM = 1-lossAvg;
+
+meanaccs = mean(accuracyGLM,2);
+
 
 figure
-bar(accuracy)
-set(gca,'xtickLabel',{'GLM SS', 'GLM tCCA'})
+bar(accuracyGLM)
+hold on
+plot([.5 3.5], [0.5 0.5], '--k')
+set(gca,'xtickLabel',{...
+    ['no GLM (' num2str(100*meanaccs(1), '%2.1f') '%)'], ...
+    ['GLM SS (' num2str(100*meanaccs(2),'%2.1f') '%)'], ...
+    ['GLM tCCA (' num2str(100*meanaccs(3),'%2.1f') '%)']})
 ylabel('mean accuracy / subject')
+title('subject avg classification accuracies for each method')

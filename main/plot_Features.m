@@ -56,12 +56,12 @@ for sbj = 1:numel(TTM)
                 idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
             end
             % number of available channels
-            nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
-            nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
+            nHrf = size(FMdc{sbj}(:,:,idxChHrf,:,cc));
+            nNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:,cc));
             % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
             % where F: # of Features, C: # Number of Chromophores, I: # of all
             % trials (epochs*channels)            
-            FV_Raw{cc} = cat(3, FV_Raw{cc}, FMdc{sbj,os}(:,:,idxChHrf,os,cc));
+            FV_Raw{cc} = cat(3, FV_Raw{cc}, FMdc{sbj}(:,:,idxChHrf,os,cc));
             for rr=1:2 % stim and resting hrf regressor
                 FV_SS{cc,rr} = cat(3, FV_SS{cc,rr}, FMss{sbj,os}(:,:,idxChHrf,os,cc,rr));
                 FV_CCA{cc,rr} = cat(3, FV_CCA{cc,rr}, FMcca{sbj,os}(:,:,idxChHrf,os,cc,rr));
