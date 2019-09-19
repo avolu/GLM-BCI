@@ -35,7 +35,6 @@ for sbj = 1:numel(TTM)
     for os = 1:numel(TTM{sbj}.tstidx)
             % channel indices that have or dont have gt HRF
             idxChHrf = lstHrfAdd{sbj}(:,1);
-%             idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
             idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
             if size(idxChHrf,1) > size(idxChNoHrf,1)
                 idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
