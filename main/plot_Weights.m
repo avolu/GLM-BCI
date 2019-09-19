@@ -59,7 +59,38 @@ hrfreglab = {'STIM', 'NO STIM'};
 % hbo(1)/hbr(2)
 hb = 1;
 hblab = {'HbO', 'HbR'};
-hbcol ={'or', 'ob'}
+hbcol ={'or', 'ob'};
+W = {W_SS_Hrf, W_SS_NoHrf, W_CCA_Hrf, W_CCA_NoHrf};
+wlab = {'GLM SS', '', 'GLM CCA', ''};
+for ww = [1,3]
+    for hb=1:2
+        subplot(2,2,ww+hb-1)
+        scatter(abs(W{ww}(hb,:,hrfreg)),abs(W{ww+1}(hb,:,hrfreg)), hbcol{hb})
+        hold on
+        scatter(nanmean(abs(W{ww}(hb,:,hrfreg))),nanmean(abs(W{ww+1}(hb,:,hrfreg))), 'xk', 'Linewidth', 2)
+        minmax = [min([abs(W{ww}(hb,:,hrfreg)) abs(W{ww+1}(hb,:,hrfreg))]) max([abs(W{ww}(hb,:,hrfreg)), abs(W{ww+1}(hb,:,hrfreg))])];
+        plot(minmax, minmax,'k')
+        xlabel('Regressor weight Condition STIM')
+        ylabel('Regressor weight Condition REST')
+        title(['GLM ' wlab{ww} ' hrf ' hrfreglab{hrfreg} ' regressor, ' hblab{hb}])
+        axis tight
+        grid on
+    end
+end
+
+figure
+histogram(W_SS_Hrf(1,:,1))
+hold on
+histogram(W_SS_NoHrf(1,:,1))
+
+figure
+% hrf regressor for condition
+hrfreg = 2;
+hrfreglab = {'STIM', 'NO STIM'};
+% hbo(1)/hbr(2)
+hb = 1;
+hblab = {'HbO', 'HbR'};
+hbcol ={'or', 'ob'};
 W = {W_SS_Hrf, W_SS_NoHrf, W_CCA_Hrf, W_CCA_NoHrf};
 wlab = {'GLM SS', '', 'GLM CCA', ''};
 for ww = [1,3]

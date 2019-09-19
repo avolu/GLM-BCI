@@ -197,6 +197,8 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             aux_emb = tembz(AUX(tstIDX,:), param);
             % calculate tcca regressors
             REG_tcca = aux_emb*Atcca;     
+            % save for later
+            REG_tccaFull = REG_tcca;
                     
             % zero out test blocks
             REG_tcca(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
@@ -238,7 +240,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                         hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
                         s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
                         t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
-                        SD, REG_tcca(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                        SD, REG_tccaFull(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
                         squeeze(HRF_regressor_CCA(:,:,:,cc)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
                 end
                 
