@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -25,92 +25,91 @@ flag_plotCCA = true;
 
 %% Get HRF features from all augmented channels to compare against  ground truth
 %Sort through results and append
-W_SS_Hrf=[];
-W_SS_NoHrf=[];
-W_CCA_Hrf=[];
-W_CCA_NoHrf=[];
+W_SS = cell(2,2);
+W_CCA = cell(2,2);
 for sbj = 1:numel(TTM)
     % only look at the crossvalidated test results. These are stored where cell and trial index
     % coincide (== os)
     for os = 1:numel(TTM{sbj}.tstidx)
-            % channel indices that have or dont have gt HRF
-            idxChHrf = lstHrfAdd{sbj}(:,1);
-%             idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
-            idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
-            if size(idxChHrf,1) > size(idxChNoHrf,1)
-                idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
-            else
-                idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
+        % channel indices that have or dont have gt HRF
+        idxChHrf = lstHrfAdd{sbj}(:,1);
+        idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
+        if size(idxChHrf,1) > size(idxChNoHrf,1)
+            idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
+        else
+            idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
+        end
+        % number of available channels for HRF added
+        cc=1;
+        nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
+        nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
+        % extract and append crossvalidated weights (from testing trial), new dimension is
+        % CHROMOPHORES x Concatenated weights of active CHANNELS (trials)
+        for cc=1:2 % stim and resting condition
+            for rr=1:2 % stim and resting hrf regressor
+                W_SS{cc,rr} = cat(2, W_SS{cc,rr}, squeeze(FWss{sbj,os}(1,:,idxChHrf,os,cc,rr)));
+                W_CCA{cc,rr} = cat(2, W_CCA{cc,rr}, squeeze(FWcca{sbj,os}(1,:,idxChHrf,os,cc,rr)));
             end
-            % number of available channels for HRF added
-            cc=1;
-            nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
-            nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
-            % extract and append crossvalidated weights (from testing trial), new dimension is 
-            % CHROMOPHORES x Concatenated weights of active CHANNELS (trials) x CONDITION HRF,
-            W_SS_Hrf = cat(2, W_SS_Hrf, squeeze(FWss{sbj,os}(1,:,idxChHrf,os,:)));
-            W_SS_NoHrf = cat(2, W_SS_NoHrf, squeeze(FWss{sbj,os}(1,:,idxChNoHrf,os,:)));
-            W_CCA_Hrf = cat(2, W_CCA_Hrf, squeeze(FWcca{sbj,os}(1,:,idxChHrf,os,:)));
-            W_CCA_NoHrf = cat(2, W_CCA_NoHrf, squeeze(FWcca{sbj,os}(1,:,idxChNoHrf,os,:)));
-
+        end
     end
 end
 
 %% (Scatter)Plot results (weights)
-% plots the weights 
-figure
 % hrf regressor for condition
-hrfreg = 1;
-hrfreglab = {'STIM', 'NO STIM'};
-% hbo(1)/hbr(2)
-hb = 1;
+hrfreglab = {'STIM', 'REST'};
 hblab = {'HbO', 'HbR'};
 hbcol ={'or', 'ob'};
-W = {W_SS_Hrf, W_SS_NoHrf, W_CCA_Hrf, W_CCA_NoHrf};
-wlab = {'GLM SS', '', 'GLM CCA', ''};
-for ww = [1,3]
-    for hb=1:2
-        subplot(2,2,ww+hb-1)
-        scatter(abs(W{ww}(hb,:,hrfreg)),abs(W{ww+1}(hb,:,hrfreg)), hbcol{hb})
-        hold on
-        scatter(nanmean(abs(W{ww}(hb,:,hrfreg))),nanmean(abs(W{ww+1}(hb,:,hrfreg))), 'xk', 'Linewidth', 2)
-        minmax = [min([abs(W{ww}(hb,:,hrfreg)) abs(W{ww+1}(hb,:,hrfreg))]) max([abs(W{ww}(hb,:,hrfreg)), abs(W{ww+1}(hb,:,hrfreg))])];
-        plot(minmax, minmax,'k')
-        xlabel('Regressor weight Condition STIM')
-        ylabel('Regressor weight Condition REST')
-        title(['GLM ' wlab{ww} ' hrf ' hrfreglab{hrfreg} ' regressor, ' hblab{hb}])
-        axis tight
-        grid on
+W = {W_SS, W_CCA};
+wlab = {'GLM SS', 'GLM CCA'};
+% Plot both methods
+figure
+for ww = 1:2
+    % for HRF stim regressor
+    for rr = 1:2
+        % for both chromophores
+        for hb=1:2
+            % plot weights for HRF stim regressor for STIM vs REST trials (cc=1 vs 2)
+            subplot(2,4,rr+(hb-1)*4+(ww-1)*2)
+            scatter(abs(W{ww}{1,rr}(hb,:)),abs(W{ww}{2,rr}(hb,:)), hbcol{hb})
+            hold on
+            scatter(nanmean(abs(W{ww}{1,rr}(hb,:))),nanmean(abs(W{ww}{2,rr}(hb,:))), 'xk', 'Linewidth', 2)
+            minmax = [min([abs(W{ww}{1,rr}(hb,:)) abs(W{ww}{2,rr}(hb,:))]) max([abs(W{ww}{1,rr}(hb,:)) abs(W{ww}{2,rr}(hb,:))])];
+            plot(minmax, minmax,'k')
+            xlabel('STIM Trials')
+            ylabel('REST Trials')
+            title([wlab{ww} ' hrf ' hrfreglab{rr} ' regressor, ' hblab{hb}])
+            axis tight
+            grid on
+        end
     end
 end
 
-figure
-histogram(W_SS_Hrf(1,:,1))
-hold on
-histogram(W_SS_NoHrf(1,:,1))
 
-figure
+%% Histograms of weights
 % hrf regressor for condition
-hrfreg = 2;
-hrfreglab = {'STIM', 'NO STIM'};
-% hbo(1)/hbr(2)
-hb = 1;
+hrfreglab = {'STIM', 'REST'};
 hblab = {'HbO', 'HbR'};
 hbcol ={'or', 'ob'};
-W = {W_SS_Hrf, W_SS_NoHrf, W_CCA_Hrf, W_CCA_NoHrf};
-wlab = {'GLM SS', '', 'GLM CCA', ''};
-for ww = [1,3]
-    for hb=1:2
-        subplot(2,2,ww+hb-1)
-        scatter(abs(W{ww}(hb,:,hrfreg)),abs(W{ww+1}(hb,:,hrfreg)), hbcol{hb})
-        hold on
-        scatter(nanmean(abs(W{ww}(hb,:,hrfreg))),nanmean(abs(W{ww+1}(hb,:,hrfreg))), 'xk', 'Linewidth', 2)
-        minmax = [min([abs(W{ww}(hb,:,hrfreg)) abs(W{ww+1}(hb,:,hrfreg))]) max([abs(W{ww}(hb,:,hrfreg)), abs(W{ww+1}(hb,:,hrfreg))])];
-        plot(minmax, minmax,'k')
-        xlabel('Regressor weight Condition STIM')
-        ylabel('Regressor weight Condition REST')
-        title(['GLM ' wlab{ww} ' hrf ' hrfreglab{hrfreg} ' regressor, ' hblab{hb}])
-        axis tight
-        grid on
+W = {W_SS, W_CCA};
+wlab = {'GLM SS', 'GLM CCA'};
+% Plot both methods
+figure
+for ww = 1:2
+    % for HRF stim regressor
+    for rr = 1:2
+        % for both chromophores
+        for hb=1:2
+            % plot weights for HRF stim regressor for STIM vs REST trials (cc=1 vs 2)
+            subplot(2,4,rr+(hb-1)*4+(ww-1)*2)
+            histogram(W{ww}{1,rr}(hb,:))
+            hold on
+            histogram(W{ww}{2,rr}(hb,:))
+            legend('STIM Trials','REST Trials')
+            title([wlab{ww} ' hrf ' hrfreglab{rr} ' regressor, ' hblab{hb}])
+            axis tight
+            grid on
+        end
     end
 end
+
+

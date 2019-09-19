@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -31,7 +31,7 @@ sbjfolder = {'Subj33','Subj34','Subj36','Subj37','Subj38','Subj39', 'Subj40', 'S
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
-flag_save = 0;
+flag_save = 1;
 flag_conc = 1; % if 1 CCA inputs are in conc, if 0 CCA inputs are in intensity
 % results eval parameters
 eval_param.HRFmin = -2;
@@ -136,7 +136,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         end
         % conversion
         dod = hmrBandpassFilt(dod, fq, 0, 0.5);
-        dc{tt} = hmrOD2Conc( dod, SD, [6 6]);        
+        dc{tt} = hmrOD2Conc( dod, SD, [6 6]);
         dc_linear_detrend{tt} = linear_detrend(dc{tt}, t); % keeping this for no GLM
         %% run test and train CV splits
         onset_stim = find(s(:,1)==1); % condition 1: stimulus
@@ -169,14 +169,14 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% estimate HRF regressor with GLM with SS from all training trials
             % *****************************************************
             % zero elements from pre-stimulus to the end of the following rest block
-            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0; 
+            dod_new = dod; dod_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
             dc_new = hmrOD2Conc(dod_new, SD, [6 6]);
             s_new = s; s_new(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
             % GLM with SS: generate HRF regressor
             [HRF_regressor_SS, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, [], [], [eval_param.HRFmin eval_param.HRFmax], ...
                 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
-                [pre_stim_t{1}(os)  post_stim_t{2}(os)]); 
+                [pre_stim_t{1}(os)  post_stim_t{2}(os)]);
             
             % *****************************************************
             %% estimate HRF regressor with GLM with tCCA from all training trials
@@ -196,13 +196,13 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% generate tCCA regressor and zero elements from test trial pre-stimulus to the end of the following rest block
             aux_emb = tembz(AUX(tstIDX,:), param);
             % calculate tcca regressors
-            REG_tcca = aux_emb*Atcca;     
+            REG_tcca = aux_emb*Atcca;
             % save for later
             REG_tccaFull = REG_tcca;
-                    
+            
             % zero out test blocks
             REG_tcca(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
-            %% Generate HRF regressor with GLM + tCCA and the tCCA regressor 
+            %% Generate HRF regressor with GLM + tCCA and the tCCA regressor
             [HRF_regressor_CCA, yavgstd_ss, tHRF, nTrialsSS, d_ss, yresid_ss, ysum2_ss, beta, yR_ss] = ...
                 hmrDeconvHRF_DriftSS(dc_new, s_new, t, SD, REG_tcca, [], [eval_param.HRFmin eval_param.HRFmax], ...
                 1, 1, [0.5 0.5], rhoSD_ssThresh, 1, polyOrder_drift_hrfestimate, 0,hrf,lstHrfAdd{sbj},0, ...
@@ -224,24 +224,27 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 end
                 
                 %% Perform GLM on single trials
-                % for both conditions cc = 1 (HRF) and cc = 2 (rest)
+                % for both conditions cc = 1 (stim) and cc = 2 (rest)
                 for cc=1:2
-                    %% GLM with SS
-                    [yavg_ss(:,:,:,k,cc), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,k,cc), yresid_ss, ysum2_ss, beta_ss(:,:,:,k,cc), yR_ss] = ...
-                        hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
-                        s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
-                        t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
-                        SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
-                        squeeze(HRF_regressor_SS(:,:,:,cc)), rhoSD_ssThresh, 1, drift_term, ...
-                        0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
-                    
-                    %% Perform GLM with CCA
-                    [yavg_cca(:,:,:,k,cc), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k,cc), yresid_cca, ysum2_cca, beta_cca(:,:,:,k,cc), yR_cca] = ...
-                        hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
-                        s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
-                        t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
-                        SD, REG_tccaFull(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
-                        squeeze(HRF_regressor_CCA(:,:,:,cc)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+                    % for both hrf regressors rr=1 (hrf stim) and rr=2 (hrf rest)
+                    for rr=1:2
+                        %% GLM with SS
+                        [yavg_ss(:,:,:,k,cc,rr), yavgstd_ss, tHRF, nTrialsSS, ynew_ss(:,:,:,k,cc,rr), yresid_ss, ysum2_ss, beta_ss(:,:,:,k,cc,rr), yR_ss] = ...
+                            hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
+                            s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
+                            t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
+                            SD, [], [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                            squeeze(HRF_regressor_SS(:,:,:,rr)), rhoSD_ssThresh, 1, drift_term, ...
+                            0, hrf,lstHrfAdd{sbj},evalplotflag_glm,[] );
+                        
+                        %% Perform GLM with CCA
+                        [yavg_cca(:,:,:,k,cc,rr), yavgstd_cca, tHRF, nTrials(tt), ynew_cca(:,:,:,k,cc,rr), yresid_cca, ysum2_cca, beta_cca(:,:,:,k,cc,rr), yR_cca] = ...
+                            hmrDeconvHRF_DriftSS(dc{tt}(pre_stim_t{cc}(k):post_stim_t{cc}(k),:,:), ...
+                            s(pre_stim_t{cc}(k):post_stim_t{cc}(k),cc), ...
+                            t(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), ...
+                            SD, REG_tccaFull(pre_stim_t{cc}(k):post_stim_t{cc}(k),:), [], [eval_param.HRFmin eval_param.HRFmax], 1, 5, ...
+                            squeeze(HRF_regressor_CCA(:,:,:,rr)), 0, 0, drift_term, 0, hrf,lstHrfAdd{sbj},0,[]);
+                    end
                 end
                 
                 % use HRF + residual?
@@ -274,12 +277,15 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % stim on blocks
             % for both conditions
             for cc=1:2
-                % no GLM
-                [FMdc{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
-                % short separation GLM
-                [FMss{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc), fparam, ival, hrf);
-                % tCCA GLM
-                [FMcca{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(yavg_cca(:,:,:,:,cc), fparam, ival, hrf);
+                % for both regressors
+                for rr=1:2
+                    % no GLM
+                    [FMdc{sbj,os}(:,:,:,:,cc), FMclab] = getFeaturesAndMetrics(y_raw(:,:,:,:,cc), fparam, ival, hrf);
+                    % short separation GLM
+                    [FMss{sbj,os}(:,:,:,:,cc,rr), FMclab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc,rr), fparam, ival, hrf);
+                    % tCCA GLM
+                    [FMcca{sbj,os}(:,:,:,:,cc,rr), FMclab] = getFeaturesAndMetrics(yavg_cca(:,:,:,:,cc,rr), fparam, ival, hrf);
+                end
             end
             %% save weights
             FWss{sbj,os}=beta_ss;
