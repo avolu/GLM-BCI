@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -22,12 +22,23 @@ load([path.save '\FV_results.mat'])
 
 % load and init BBCI toolbox
 % bbci toolbox paths
-paths.bbciDir = 'D:\Office\Archive Office\Toolboxes - Code Libraries\Matlab\BBCI\';
-paths.bbciDataDir = 'D:\Datasets\bbci_data';
-paths.bbciTmpDir = 'D:\Datasets\bbci_data\tmp\';
-addpath(genpath(paths.bbciDir))
-cd(paths.bbciDir);
-startup_bbci_toolbox('DataDir', paths.bbciDataDir, 'TmpDir',paths.bbciTmpDir);
+if malexflag
+    %Meryem
+    paths.bbciDir = 'C:\Users\mayucel\Documents\PROJECTS\CODES\bbci_public-master';
+    paths.bbciDataDir = 'C:\Users\mayucel\Documents\PROJECTS\CODES\bbci_public-master\bbci_data';
+    paths.bbciTmpDir = 'C:\Users\mayucel\Documents\PROJECTS\CODES\bbci_public-master\bbci_data\tmp';
+    addpath(genpath(paths.bbciDir))
+    cd(paths.bbciDir);
+    startup_bbci_toolbox('DataDir', paths.bbciDataDir, 'TmpDir',paths.bbciTmpDir);
+else
+    % Alex
+    paths.bbciDir = 'D:\Office\Archive Office\Toolboxes - Code Libraries\Matlab\BBCI\';
+    paths.bbciDataDir = 'D:\Datasets\bbci_data';
+    paths.bbciTmpDir = 'D:\Datasets\bbci_data\tmp\';
+    addpath(genpath(paths.bbciDir))
+    cd(paths.bbciDir);
+    startup_bbci_toolbox('DataDir', paths.bbciDataDir, 'TmpDir',paths.bbciTmpDir);
+end
 
 % use hrf STIM regressor weights as features (not the REST regressor
 % weights, as they are useless here)
