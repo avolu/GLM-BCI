@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -39,47 +39,52 @@ hrfdat.t = hrf.t_hrf';
 
 %% Get HRF features from all augmented channels to compare against  ground truth
 %Sort through results and append
-F_Raw_Hrf=[];
-F_Raw_NoHrf=[];
-F_SS_Hrf=[];
-F_SS_NoHrf=[];
-F_CCA_Hrf=[];
-F_CCA_NoHrf=[];
+FV_Raw = cell(2);
+FV_SS = cell(2,2);
+FV_CCA = cell(2,2);
 for sbj = 1:numel(TTM)
     % only look at the crossvalidated test results. These are stored where cell and trial index
     % coincide (== os)
     for os = 1:numel(TTM{sbj}.tstidx)
-        % for condition cc=1: sim HRF added
-        for cc=1%:2
+        for cc=1:2 % stim and resting condition
             % channel indices that have or dont have gt HRF
             idxChHrf = lstHrfAdd{sbj}(:,1);
-            idxChNoHrf = arrayfun(@(x) find(lstLongAct{sbj}==x,1),squeeze(lstHrfAdd{sbj}(:,1)));
+            idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
+            if size(idxChHrf,1) > size(idxChNoHrf,1)
+                idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
+            else
+                idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
+            end
             % number of available channels
             nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
             nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
             % extract and append crossvalidated features (from testing trial), new dimension is F x C x I,
             % where F: # of Features, C: # Number of Chromophores, I: # of all
-            % trials (epochs*channels)
-            F_Raw_Hrf = cat(3, F_Raw_Hrf, FMdc{sbj,os}(:,:,idxChHrf,os,cc));
-            F_Raw_NoHrf = cat(3, F_Raw_NoHrf, FMdc{sbj,os}(:,:,idxChNoHrf,os,cc));
-            F_SS_Hrf = cat(3, F_SS_Hrf, FMss{sbj,os}(:,:,idxChHrf,os,cc));
-            F_SS_NoHrf = cat(3, F_SS_NoHrf,FMss{sbj,os}(:,:,idxChNoHrf,os,cc));
-            F_CCA_Hrf = cat(3, F_CCA_Hrf, FMcca{sbj,os}(:,:,idxChHrf,os,cc));
-            F_CCA_NoHrf = cat(3, F_CCA_NoHrf, FMcca{sbj,os}(:,:,idxChNoHrf,os,cc));
+            % trials (epochs*channels)            
+            FV_Raw{cc} = cat(3, FV_Raw{cc}, FMdc{sbj,os}(:,:,idxChHrf,os,cc));
+            for rr=1:2 % stim and resting hrf regressor
+                FV_SS{cc,rr} = cat(3, FV_SS{cc,rr}, FMss{sbj,os}(:,:,idxChHrf,os,cc,rr));
+                FV_CCA{cc,rr} = cat(3, FV_CCA{cc,rr}, FMcca{sbj,os}(:,:,idxChHrf,os,cc,rr));
+            end
         end
     end
 end
 
-%% Paired T-Tests
+
+%% Paired T-Tests for STIM trials with HRF added and HRF STIM regressor
+cc = 1;
+rr = 1;
 for ff = 1:9
     for ch=1:3
-        [h_co(ff,ch,1),p_co(ff,ch,1)]= ttest(squeeze(F_Raw_Hrf(ff,ch,:)),squeeze(F_SS_Hrf(ff,ch,:)));
-        [h_co(ff,ch,2),p_co(ff,ch,2)]= ttest(squeeze(F_Raw_Hrf(ff,ch,:)),squeeze(F_CCA_Hrf(ff,ch,:)));
-        [h_co(ff,ch,3),p_co(ff,ch,3)]= ttest(squeeze(F_SS_Hrf(ff,ch,:)),squeeze(F_CCA_Hrf(ff,ch,:)));
+        [h_co(ff,ch,1),p_co(ff,ch,1)]= ttest(squeeze(FV_Raw{cc,rr}(ff,ch,:)),squeeze(FV_SS{cc,rr}(ff,ch,:)));
+        [h_co(ff,ch,2),p_co(ff,ch,2)]= ttest(squeeze(FV_Raw{cc,rr}(ff,ch,:)),squeeze(FV_CCA{cc,rr}(ff,ch,:)));
+        [h_co(ff,ch,3),p_co(ff,ch,3)]= ttest(squeeze(FV_SS{cc,rr}(ff,ch,:)),squeeze(FV_CCA{cc,rr}(ff,ch,:)));
     end
 end
 
-%% (Box)Plot results (normal metrics)
+%% (Box)Plot results (normal metrics) for STIM trials with HRF added and HRF STIM regressor
+cc = 1;
+rr = 1;
 figure
 labels = {'No GLM', 'GLM SS', 'GLM tCCA'};
 chrom = {' HbO', ' HbR'};
@@ -93,11 +98,11 @@ for ff=1:9
         %% boxplots
         % with cca
         if flag_plotCCA
-            boxplot([squeeze(F_Raw_Hrf(ff,ch,:)), squeeze(F_SS_Hrf(ff,ch,:)), squeeze(F_CCA_Hrf(ff,ch,:))], 'labels', labels)
+            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels)
             H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
         else
             % without cca
-            boxplot([squeeze(F_Raw_Hrf(ff,ch,:)), squeeze(F_SS_Hrf(ff,ch,:))], 'labels', labels(1:2))
+            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2))
             H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
         end
         
@@ -146,19 +151,19 @@ for ff=1:9
         if ff<8
             % without GLM, with GLM+SS, with GLM+CCA
             if flag_plotCCA
-                boxplot([abs(squeeze(F_Raw_Hrf(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(F_SS_Hrf(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(F_CCA_Hrf(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels)
+                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_CCA{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels)
                 H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
             else
-                boxplot([abs(squeeze(F_Raw_Hrf(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(F_SS_Hrf(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels(1:2))
+                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels(1:2))
                 H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
             end
             title(['ERR ' FMclab{ff} chrom{ch}])
         else
             if flag_plotCCA
-                boxplot([squeeze(F_Raw_Hrf(ff,ch,:)), squeeze(F_SS_Hrf(ff,ch,:)), squeeze(F_CCA_Hrf(ff,ch,:))], 'labels', labels)
+                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels)
                 H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
             else
-                boxplot([squeeze(F_Raw_Hrf(ff,ch,:)), squeeze(F_SS_Hrf(ff,ch,:))], 'labels', labels(1:2))
+                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2))
                 H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
             end
             

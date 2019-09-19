@@ -20,9 +20,6 @@ end
 %% load data
 load([path.save '\FV_results.mat'])
 
-% include tcca results in plots?
-flag_plotCCA = true;
-
 %% Get HRF features from all augmented channels to compare against  ground truth
 %Sort through results and append
 W_SS = cell(2,2);

@@ -20,3 +20,26 @@ end
 
 load([path.save '\FV_results.mat'])
 
+% use hrf STIM regressor weights as features (not the REST regressor
+% weights, as they are useless here)
+% and transform to bbci data structure
+rr = 1;
+
+
+
+
+for sbj=1:numel(TTM)
+   
+    for tt=1:numel(TTM{sbj}.tstidx
+    
+%% training of rLDA
+
+
+%% testing of rLDA 
+    
+
+
+    end
+    
+end
+

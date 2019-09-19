@@ -74,7 +74,7 @@ param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
 % the tCCA function
 param.ct = 0;   % correlation threshold
 % set number of tCCA regressors used for GLM
-tcca_nReg = 2;
+tcca_nReg = 5;
 
 
 %% Eval plot flag (developing/debugging purposes only)
