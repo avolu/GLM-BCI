@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -31,7 +31,7 @@ sbjfolder = {'Subj33','Subj34','Subj36','Subj37','Subj38','Subj39', 'Subj40', 'S
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
-flag_save = 1;
+flag_save = 0;
 flag_conc = 1; % if 1 CCA inputs are in conc, if 0 CCA inputs are in intensity
 % results eval parameters
 eval_param.HRFmin = -2;

@@ -460,7 +460,11 @@ for conc=1:2 %only HbO and HbR
             if mlSSlst(iSS)==0
                 lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
                 % lstML = 1:size(y,3);
-                At = A(:,:,conc,:); % DOUBLE CHECK THIS PART FOR TCCA
+%                 At = A(:,:,conc,:); % DOUBLE CHECK THIS PART FOR TCCA
+                for i = 1:size(lstML,1); % adding A ss on the channels that have highest corr with it.
+                   At(:,:,lstML(i)) = [A(:,:,conc,lstML(i))];
+                end
+                
             elseif flagSSmethod==0
                 lstML = find(iNearestSS(:)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
                 % lstML = find(iNearestSS==mlSSlst(iSS));
@@ -470,7 +474,7 @@ for conc=1:2 %only HbO and HbR
                 lstML = find(iNearestSS(:,conc)==mlSSlst(iSS) & mlAct(lstMLtmp)==1);
                 % lstML = find(iNearestSS(:,conc)==mlSSlst(iSS));
                 Ass = y(:,conc,mlSSlst(iSS));
-                for i=1:size(lstML); % adding A ss on the channels that have highest corr with it.
+                for i = 1:size(lstML,1); % adding A ss on the channels that have highest corr with it.
                     At(:,:,lstML(i)) = [A(:,:,conc,lstML(i)) Ass];
                 end
             elseif flagSSmethod==2
@@ -491,7 +495,7 @@ for conc=1:2 %only HbO and HbR
                 ATA=At(lstInc,:)'*At(lstInc,:);
             elseif idxBasis == 5
                 %                 for iCh = 1:size(paramsBasis,3)
-                for i=1:size(lstML);
+                for i=1:size(lstML,1);
                     ATA(:,:,lstML(i))=At(lstInc,:,lstML(i))'*At(lstInc,:,lstML(i));
                 end
                 %                 end
