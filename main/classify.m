@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -47,72 +47,73 @@ rr = 1;
 epo.className = {'STIM', 'REST'};
 epo.clab = FMclab;
 
-% for conventional NO GLM features
+% for conventional features
 gg=1;
 % select features
 % [ min, max, p2p, avg, t2p, slope w1, slope w2]
 fsel = [3,4,6,7];
 % for all subjects
-for sbj=1:numel(TTM)
-    % for all trials
-    for tt = 1:numel(TTM{sbj}.tstidx)
-        xTr{gg,sbj,tt} =[];
-        xTst{gg,sbj,tt}=[];
-        yTr{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
-        yTst{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
-        for cc=1:2
-            % train data  (from GLM with trained HRF regressor on seen training data)
-            % append features for hbo and hbr and all channels without SS
-            fvbuf = [];
-            fvbuf = squeeze(FMdc{sbj}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc));
-            xTr{gg,sbj,tt} = [xTr{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
-            % generate label vector
-            yTr{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
-            % test data (from GLM with trained HRF regressor on unseen data)
-            % append features for hbo and hbr and all channels without SS
-            fvbuf = [];
-            fvbuf = squeeze(FMdc{sbj}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
-            xTst{gg,sbj,tt} = [xTst{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
-            % generate label vector
-            yTst{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
-        end
-    end
-end
-
-
-% for both GLM methods
-FW = {[], FWss, FWcca};
-for gg = 2:3
-    % for all subjects
+FW = {FMdc, FMss, FMcca};
+for gg = 1:3
     for sbj=1:numel(TTM)
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
-            xTr{gg,sbj,tt} =[];
-            xTst{gg,sbj,tt}=[];
-            yTr{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
-            yTst{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
+            if gg==1    tt=1; end
+            xTrF{gg,sbj,tt} =[];
+            xTstF{gg,sbj,tt}=[];
+            yTrF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
+            yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
             for cc=1:2
                 % train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
-                xTr{gg,sbj,tt} = [xTr{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tnridx(tt,:)))];
+                fvbuf = squeeze(FW{sbj,tt}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc));
+                xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
                 % generate label vector
-                yTr{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
+                yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
                 % test data (from GLM with trained HRF regressor on unseen data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
-                xTst{gg,sbj,tt} = [xTst{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tstidx(tt)))];
+                fvbuf = squeeze(FW{sbj,tt}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+                xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
                 % generate label vector
-                yTst{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
+                yTstF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
             end
         end
     end
 end
 
 
-
+% for both weights from GLM methods
+FW = {[], FWss, FWcca};
+for gg = 2:3
+    % for all subjects
+    for sbj=1:numel(TTM)
+        % for all trials
+        for tt = 1:numel(TTM{sbj}.tstidx)
+            xTrW{gg,sbj,tt} =[];
+            xTstW{gg,sbj,tt}=[];
+            yTrW{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
+            yTstW{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
+            for cc=1:2
+                % train data  (from GLM with trained HRF regressor on seen training data)
+                % append features for hbo and hbr and all channels without SS
+                fvbuf = [];
+                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
+                xTrW{gg,sbj,tt} = [xTrW{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tnridx(tt,:)))];
+                % generate label vector
+                yTrW{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
+                % test data (from GLM with trained HRF regressor on unseen data)
+                % append features for hbo and hbr and all channels without SS
+                fvbuf = [];
+                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+                xTstW{gg,sbj,tt} = [xTstW{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tstidx(tt)))];
+                % generate label vector
+                yTstW{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
+            end
+        end
+    end
+end
 
 %% CROSSVALIDATION using rLDA as classifier
 % for all methods (1> NO GLM, 2> GLM SS, 3> GLM CCA)
@@ -123,11 +124,11 @@ for gg = 1:3
         for tt=1:numel(TTM{sbj}.tstidx)
             
             %% training of rLDA
-            C = train_RLDAshrink(xTr{gg,sbj,tt}, yTr{gg,sbj,tt});
+            C = train_RLDAshrink(xTrW{gg,sbj,tt}, yTrW{gg,sbj,tt});
             
             %% testing of rLDA
-            fv.x = xTst{gg,sbj,tt};
-            fv.y = yTst{gg,sbj,tt};
+            fv.x = xTstW{gg,sbj,tt};
+            fv.y = yTstW{gg,sbj,tt};
             out = applyClassifier(fv, C);
             % loss function
             loss{gg,sbj}(tt,:,:)=loss_classwiseNormalized(fv.y, out, size(fv.y));
