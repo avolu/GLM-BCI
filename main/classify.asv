@@ -50,7 +50,7 @@ epo.clab = FMclab;
 %% for conventional features
 % select features
 % [ min, max, p2p, avg, t2p, slope w1, slope w2]
-fsel = [3,6];
+fsel = [3,4,6,7];
 % for all subjects
 FW = {FMdc', FMss, FMcca};
 for gg = 1:3
@@ -88,7 +88,7 @@ for gg = 1:3
 end
 
 
-%% for weight features from GLM methods
+% for both weights from GLM methods
 FW = {[], FWss, FWcca};
 for gg = 2:3
     % for all subjects
@@ -159,7 +159,7 @@ title('Normal Features')
 
 %% CROSSVALIDATION using rLDA as classifier and weight features
 % for GLM methods ( 2> GLM SS, 3> GLM CCA)
-
+lossW = cell(3,numel(TTM));
 for gg = 2:3
     % for all subjects
     for sbj=1:numel(TTM)
@@ -180,17 +180,15 @@ for gg = 2:3
     end
 end
 accuracyGLMW = 1-lossAvgW;
-accuracyGLMW(1,:)=0;
 meanaccsW = mean(accuracyGLMW,2);
 
 
 figure
-bar(accuracyGLMW)
+bar(accuracyGLMF)
 hold on
 plot([.5 3.5], [0.5 0.5], '--k')
 set(gca,'xtickLabel',{...
-    '', ...
-    ['GLM SS (' num2str(100*meanaccsW(2),'%2.1f') '%)'], ...
-    ['GLM tCCA (' num2str(100*meanaccsW(3),'%2.1f') '%)']})
+    ['GLM SS (' num2str(100*meanaccsW(1),'%2.1f') '%)'], ...
+    ['GLM tCCA (' num2str(100*meanaccsW(2),'%2.1f') '%)']})
 ylabel('mean accuracy / subject')
 title('Weight Features')
