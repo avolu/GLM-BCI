@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -14,11 +14,11 @@ if malexflag
 else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
     path.save = path.code; % save directory
 end
 %% load data
-load([path.save '\FV_results.mat'])
+load([path.save '\FV_results_std.mat'])
 %% load ground truth hrf
 hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 

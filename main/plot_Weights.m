@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -14,11 +14,11 @@ if malexflag
 else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
     path.save = path.code; % save directory
 end
 %% load data
-load([path.save '\FV_results.mat'])
+load([path.save '\FV_results_std.mat'])
 
 %% Get HRF features from all augmented channels to compare against  ground truth
 %Sort through results and append
@@ -38,8 +38,8 @@ for sbj = 1:numel(TTM)
         end
         % number of available channels for HRF added
         cc=1;
-        nHrf = size(FMdc{sbj,os}(:,:,idxChHrf,:,cc));
-        nNoHrf = size(FMdc{sbj,os}(:,:,idxChNoHrf,:,cc));
+        nHrf = size(FWss{sbj,os}(:,:,idxChHrf,:,cc));
+        nNoHrf = size(FWss{sbj,os}(:,:,idxChNoHrf,:,cc));
         % extract and append crossvalidated weights (from testing trial), new dimension is
         % CHROMOPHORES x Concatenated weights of active CHANNELS (trials)
         for cc=1:2 % stim and resting condition
