@@ -459,9 +459,7 @@ for conc=1:2 %only HbO and HbR
             lstMLtmp = find(ml(:,4)==1);
             if mlSSlst(iSS)==0
                 lstML = lstMLtmp(find(mlAct(lstMLtmp)==1));
-                % lstML = 1:size(y,3);
-%                 At = A(:,:,conc,:); % DOUBLE CHECK THIS PART FOR TCCA
-                for i = 1:size(lstML,1); % adding A ss on the channels that have highest corr with it.
+                for i = 1:size(lstML,1); 
                    At(:,:,lstML(i)) = [A(:,:,conc,lstML(i))];
                 end
                 
