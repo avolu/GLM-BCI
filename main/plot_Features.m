@@ -15,15 +15,24 @@ else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
 end
 %% load data
-load([path.save '\FV_results_std.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg3_ldrift0_resid1_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap2'])
+load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2'])
+
+
 %% load ground truth hrf
 hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 
 % include tcca results in plots?
 flag_plotCCA = true;
+
+% outlier symbol
+osymb = '';
 
 % Features/structs for feature extraction function
 eval_param.HRFmin = -2;
@@ -98,11 +107,11 @@ for ff=1:9
         %% boxplots
         % with cca
         if flag_plotCCA
-            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels)
+            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels, 'Notch','on', 'symbol', osymb)
             H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
         else
             % without cca
-            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2))
+            boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2),'Notch','on', 'symbol', osymb)
             H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
         end
         
@@ -151,19 +160,19 @@ for ff=1:9
         if ff<8
             % without GLM, with GLM+SS, with GLM+CCA
             if flag_plotCCA
-                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_CCA{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels)
+                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_CCA{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels, 'Notch','on', 'symbol', osymb)
                 H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
             else
-                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels(1:2))
+                boxplot([abs(squeeze(FV_Raw{cc,rr}(ff,ch,:))-FVgt.x(ff,ch)), abs(squeeze(FV_SS{cc,rr}(ff,ch,:))-FVgt.x(ff,ch))], 'labels', labels(1:2), 'Notch','on', 'symbol', osymb)
                 H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
             end
             title(['ERR ' FMclab{ff} chrom{ch}])
         else
             if flag_plotCCA
-                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels)
+                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:)), squeeze(FV_CCA{cc,rr}(ff,ch,:))], 'labels', labels, 'Notch','on', 'symbol', osymb)
                 H=sigstar({[1,2],[1,3],[2,3]},squeeze(p_co(ff,ch,1:3)));
             else
-                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2))
+                boxplot([squeeze(FV_Raw{cc,rr}(ff,ch,:)), squeeze(FV_SS{cc,rr}(ff,ch,:))], 'labels', labels(1:2) ,'Notch','on', 'symbol', osymb)
                 H=sigstar({[1,2]},squeeze(p_co(ff,ch,1)));
             end
             

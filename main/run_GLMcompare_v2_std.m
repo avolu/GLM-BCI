@@ -6,7 +6,7 @@ if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
     
     %Meryem Laptop
     %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -16,7 +16,7 @@ else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
 end
 
 % #####
@@ -28,7 +28,7 @@ hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
 set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
-sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94'};
+sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94', 'Subj95', 'Subj96', 'Subj97', 'Subj98'}; % potentially exclude Subj94 (only 4 channels HRF added because of motion)
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
@@ -57,13 +57,21 @@ ival = [eval_param.HRFmin eval_param.HRFmax];
 % motion artifact detection
 motionflag = false;
 
+tcca_paramset = 2;
 % Validation parameters
 % tlags = 0:1:10;
 % stpsize = 2:2:24;
 % cthresh = 0:0.1:0.9;
-tlags = 3;
-stpsize = 2;
-cthresh = 0.3;
+switch tcca_paramset
+    case 1
+        tlags = 3;
+        stpsize = 2;
+        cthresh = 0.3;
+    case 2
+        tlags = 3;
+        stpsize = 8;
+        cthresh = 0.3;
+end
 %% CCA with optimum parameters
 tl = tlags;
 sts = stpsize;
@@ -81,6 +89,10 @@ tcca_nReg = 2;
 %% Eval plot flag (developing/debugging purposes only)
 evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
 evalplotflag_glm = 0; % displays raw signal, model fit, yresid, hrf, ss, drift etc for sanity check (now for glm_ss only)
+
+%omit first omsec seconds in tcca training data (to get rid of initial
+%motion artifacts)
+omsec = 20;
 
 %% dimensions
 % beta [# of basis] X [HbO/R] X [# of channels]
@@ -118,8 +130,8 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     
     % create data split indices
     len = size(AUX,1);
-    spltIDX = {1:floor(len/5),floor(len/5)+1:len};
-
+    spltIDX = {omsec*fq:floor(len/5),floor(len/5)+1:len};
+    
     tCCAtrnIDX = spltIDX{1};
     cvIDX = spltIDX{2};
     
@@ -300,7 +312,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_std.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;

@@ -15,10 +15,15 @@ else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
 end
 
-load([path.save '\FV_results_std.mat'])
+%% load data
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1.mat'])
+%load([path.save '\FV_results_std_nReg3_ldrift0_resid1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap2'])
+load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2'])
 
 % load and init BBCI toolbox
 % bbci toolbox paths
