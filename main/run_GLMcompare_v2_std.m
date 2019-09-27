@@ -20,10 +20,19 @@ else
 end
 
 % #####
-%% simulated data file names
-filename = 'resting_sim_100_shorterHRF';
-%% load ground truth hrf
-hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
+% 50 or 100% hrf?
+hrf = 50;
+
+%% simulated data file names %% load ground truth hrf
+switch hrf
+    case 50
+        filename = 'resting_sim_50_shorterHRF';
+        hrf = load([path.code '\sim HRF\hrf_simdat_50_shorterHRF.mat']);
+    case 100
+        filename = 'resting_sim_100_shorterHRF';
+        hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
+end
+
 %% save folder name
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
@@ -41,7 +50,7 @@ eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 8;
 flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing"
-drift_term = 0; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
+drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
 polyOrder_drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 % CCA parameters
@@ -312,7 +321,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_hrf' num2str(hrf) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;
