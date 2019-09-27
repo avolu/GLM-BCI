@@ -19,12 +19,15 @@ else
 end
 %% load data
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1_20soffs.mat'])
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap1.mat'])
 %load([path.save '\FV_results_std_nReg3_ldrift0_resid1_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift0_resid0_tccap1_20soffs.mat'])
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap2'])
-load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2'])
-
-
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2'])
+load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_20soffs.mat']) % good
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift0_resid0_tccap2_20soffs.mat'])
 %% load ground truth hrf
 hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 

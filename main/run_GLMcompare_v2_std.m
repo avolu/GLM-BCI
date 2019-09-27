@@ -41,7 +41,7 @@ eval_param.Hb = 1; % 1 HbO / 0 HbR (for block only)
 eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 8;
 flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing"
-drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
+drift_term = 0; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
 polyOrder_drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 % CCA parameters
