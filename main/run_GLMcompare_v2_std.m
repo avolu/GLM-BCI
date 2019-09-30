@@ -1,11 +1,11 @@
 clear all;
 
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    path.dir = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
     path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
     
     %Meryem Laptop
@@ -163,8 +163,16 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     onset_stim_rest = find(s(:,2)==1); % condition 2: rest
     
     % in case of a really early stim not allowing prestim period
-    if onset_stim(1) < abs(eval_param.HRFmin*fq)
+    if onset_stim(1) < abs(eval_param.HRFmin*fq)% if first stim is too early
         onset_stim(1) = [];
+        onset_stim_rest(1) = [];
+    elseif onset_stim_rest(1) < abs(eval_param.HRFmin*fq) % if first rest is too early
+        onset_stim_rest(1) = [];
+    end
+    
+    % if after cutting the data into cvIDX, rest mark is earlier than the
+    % first stim mark, remove rest (this is hypothetical now)
+    if onset_stim_rest(1) < onset_stim(1)
         onset_stim_rest(1) = [];
     end
     
