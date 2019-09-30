@@ -170,6 +170,40 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     pre_stim_t{2} = onset_stim_rest+eval_param.HRFmin*fq;
     post_stim_t{2} = onset_stim_rest+eval_param.HRFmax*fq;
     
+    %% learn tCCA filters on first part of the data
+    % Temporal embedding of auxiliary data from training split to
+    % learn the filter matrix
+    % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
+    % use test data of LD channels without synth HRF
+    X = d0_long(tCCAtrnIDX,:);
+    % run loop to indentify individual optimal tCCA parameterset
+    disp('finding individual tCCA parameters...')
+    ccbuf = zeros(tcca_nReg);
+    Atcca= [];
+    for tl = tlags
+        for sts = stpsize
+            % number of embeddings
+            param.NumOfEmb = ceil(tl*fq / sts);
+            % set stepsize for CCA
+            param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+            % new tCCA with shrinkage
+            [REG_trn,  ADD_trn] = rtcca(X,AUX(tCCAtrnIDX,:),param,flags);
+            % found a better parameter set?
+            if sum(ADD_trn.ccac(1:tcca_nReg)) > sum(ccbuf)
+                % save new ccbuf
+                ccbuf = sum(ADD_trn.ccac(1:tcca_nReg));
+                % save parameterset
+                tcca_ps(sbj).tl = tl;
+                tcca_ps(sbj).sts = sts;
+                % save trained tCCA filter matrix (first tcca_nReg regressors)
+                Atcca = ADD_trn.Av(:,1:tcca_nReg);
+            end
+        end
+    end
+    disp('found individual tCCA parameters...')
+    param.tau = tcca_ps(sbj).tl;
+    param.NumOfEmb = ceil(tcca_ps(sbj).tl*fq / tcca_ps(sbj).sts);
+    
     for os = 1:size(onset_stim,1)%% loop around each stimulus
         % write train/test flag matrix
         TTM{sbj}.tstidx(os)=os;
@@ -196,40 +230,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         % *****************************************************
         %% estimate HRF regressor with GLM with tCCA from all training trials
         % *****************************************************
-        %% learn tCCA filters
-        % Temporal embedding of auxiliary data from training split to
-        % learn the filter matrix
-        % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
-        % use test data of LD channels without synth HRF
-        X = d0_long(tCCAtrnIDX,:);
-        
-        % run loop to indentify individual optimal tCCA parameterset
-        disp('finding individual tCCA parameters...')
-        ccbuf = zeros(tcca_nReg);
-        Atcca= [];
-        for tl = tlags
-            for sts = stpsize
-                % number of embeddings
-                param.NumOfEmb = ceil(tl*fq / sts);
-                % set stepsize for CCA
-                param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
-                % new tCCA with shrinkage
-                [REG_trn,  ADD_trn] = rtcca(X,AUX(tCCAtrnIDX,:),param,flags);
-                % found a better parameter set?
-                if sum(ADD_trn.ccac(1:tcca_nReg)) > sum(ccbuf)
-                    % save new ccbuf
-                    ccbuf = sum(ADD_trn.ccac(1:tcca_nReg));
-                    % save parameterset
-                    tcca_ps(sbj).tl = tl;
-                    tcca_ps(sbj).sts = sts;
-                    % save trained tCCA filter matrix (first tcca_nReg regressors)
-                    Atcca = ADD_trn.Av(:,1:tcca_nReg);  
-                end
-            end
-        end
-        disp('found individual tCCA parameters...')
-        param.tau = tcca_ps(sbj).tl;
-        param.NumOfEmb = ceil(tcca_ps(sbj).tl*fq / tcca_ps(sbj).sts);
         %% generate tCCA regressor and zero elements from test trial pre-stimulus to the end of the following rest block
         aux_emb = tembz(AUX(cvIDX,:), param);
         % calculate tcca regressors
