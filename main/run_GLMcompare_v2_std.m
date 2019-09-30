@@ -24,7 +24,7 @@ end
 hrf_amp = 50;
 
 %% simulated data file names %% load ground truth hrf
-switch hrf
+switch hrf_amp
     case 50
         filename = 'resting_sim_50_shorterHRF';
         hrf = load([path.code '\sim HRF\hrf_simdat_50_shorterHRF.mat']);
