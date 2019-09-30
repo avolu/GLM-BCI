@@ -1,7 +1,7 @@
 clear all;
 
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -16,7 +16,7 @@ else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca\'; % save directory
 end
 
 % #####
@@ -66,28 +66,10 @@ ival = [eval_param.HRFmin eval_param.HRFmax];
 % motion artifact detection
 motionflag = false;
 
-tcca_paramset = 2;
-% Validation parameters
-% tlags = 0:1:10;
-% stpsize = 2:2:24;
-% cthresh = 0:0.1:0.9;
-switch tcca_paramset
-    case 1
-        tlags = 3;
-        stpsize = 2;
-        cthresh = 0.3;
-    case 2
-        tlags = 3;
-        stpsize = 8;
-        cthresh = 0.3;
-end
-%% CCA with optimum parameters
-tl = tlags;
-sts = stpsize;
-ctr = cthresh;
-
-% set stepsize for CCA
-param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+%% CCA  parameters
+% Validation parameter space
+tlags = 0:1:7;
+stpsize = 2:2:24;
 % set correlation trheshold for CCA to 0 so we dont lose anything within
 % the tCCA function
 param.ct = 0;   % correlation threshold
@@ -215,17 +197,39 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         %% estimate HRF regressor with GLM with tCCA from all training trials
         % *****************************************************
         %% learn tCCA filters
-        param.NumOfEmb = ceil(tl*fq / sts);
         % Temporal embedding of auxiliary data from training split to
         % learn the filter matrix
         % Perform CCA on training data % AUX = [acc1 acc2 acc3 PPG BP RESP, d_short];
         % use test data of LD channels without synth HRF
         X = d0_long(tCCAtrnIDX,:);
-        % new tCCA with shrinkage
-        [REG_trn,  ADD_trn] = rtcca(X,AUX(tCCAtrnIDX,:),param,flags);
-        % save trained tCCA filter matrix (first tcca_nReg regressors)
-        Atcca = ADD_trn.Av(:,1:tcca_nReg);
         
+        % run loop to indentify individual optimal tCCA parameterset
+        disp('finding individual tCCA parameters...')
+        ccbuf = zeros(tcca_nReg);
+        Atcca= [];
+        for tl = tlags
+            for sts = stpsize
+                % number of embeddings
+                param.NumOfEmb = ceil(tl*fq / sts);
+                % set stepsize for CCA
+                param.tau = sts; %stepwidth for embedding in samples (tune to sample frequency!)
+                % new tCCA with shrinkage
+                [REG_trn,  ADD_trn] = rtcca(X,AUX(tCCAtrnIDX,:),param,flags);
+                % found a better parameter set?
+                if sum(ADD_trn.ccac(1:tcca_nReg)) > sum(ccbuf)
+                    % save new ccbuf
+                    ccbuf = sum(ADD_trn.ccac(1:tcca_nReg));
+                    % save parameterset
+                    tcca_ps(sbj).tl = tl;
+                    tcca_ps(sbj).sts = sts;
+                    % save trained tCCA filter matrix (first tcca_nReg regressors)
+                    Atcca = ADD_trn.Av(:,1:tcca_nReg);  
+                end
+            end
+        end
+        disp('found individual tCCA parameters...')
+        param.tau = tcca_ps(sbj).tl;
+        param.NumOfEmb = ceil(tcca_ps(sbj).tl*fq / tcca_ps(sbj).sts);
         %% generate tCCA regressor and zero elements from test trial pre-stimulus to the end of the following rest block
         aux_emb = tembz(AUX(cvIDX,:), param);
         % calculate tcca regressors
