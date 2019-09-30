@@ -21,7 +21,7 @@ end
 
 % #####
 % 50 or 100% hrf?
-hrf = 50;
+hrf_amp = 50;
 
 %% simulated data file names %% load ground truth hrf
 switch hrf
@@ -329,7 +329,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_hrf' num2str(hrf) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;
