@@ -6,7 +6,7 @@ if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
+    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca\'; % save directory
     
     %Meryem Laptop
     %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -195,6 +195,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 % save parameterset
                 tcca_ps(sbj).tl = tl;
                 tcca_ps(sbj).sts = sts;
+                tcca_ps(sbj).canoncorr = ccbuf;
                 % save trained tCCA filter matrix (first tcca_nReg regressors)
                 Atcca = ADD_trn.Av(:,1:tcca_nReg);
             end
@@ -236,7 +237,6 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         REG_tcca = aux_emb*Atcca;
         % save for later
         REG_tccaFull = REG_tcca;
-        
         % zero out test blocks
         REG_tcca(pre_stim_t{1}(os):post_stim_t{2}(os),:) = 0;
         %% Generate HRF regressor with GLM + tCCA and the tCCA regressor
@@ -333,7 +333,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccap' num2str(tcca_paramset) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_std_nReg' num2str(tcca_nReg) '_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccaIndiv_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FMcca', 'FWss', 'FWcca', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab', 'tcca_ps');
 end
 
 toc;

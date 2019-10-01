@@ -1,11 +1,11 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
+    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca'; % save directory
     
     %Meryem Laptop
     %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -15,7 +15,7 @@ else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca\'; % save directory
 end
 
 %% load data
@@ -29,7 +29,11 @@ end
 % load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_20soffs.mat']) % good
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
 %load([path.save '\FV_results_std_nReg2_ldrift0_resid0_tccap2_20soffs.mat'])
-load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_hrf_amp50_20soffs.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_hrf_amp50_20soffs.mat'])
+
+% individualized parameters
+load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+
 
 % load and init BBCI toolbox
 % bbci toolbox paths
