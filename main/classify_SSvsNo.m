@@ -21,7 +21,6 @@ end
 %% load data
 load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
 
-
 % load and init BBCI toolbox
 % bbci toolbox paths
 if malexflag
@@ -49,17 +48,55 @@ rr = 1;
 epo.className = {'STIM', 'REST'};
 epo.clab = FMclab;
 
+%% get weight features from GLM method
+FW = FWss;
+% for all subjects
+gg=1;
+for sbj=1:numel(TTM)
+    % for all trials
+    for tt = 1:numel(TTM{sbj}.tstidx)
+        xTrF{gg,sbj,tt} =[];
+        xTstF{gg,sbj,tt}=[];
+        yTrF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
+        yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
+        for cc=1:2
+            % train data  (from GLM with trained HRF regressor on seen training data)
+            % append features for hbo and hbr and all channels without SS
+            fvbuf = [];
+            fvbuf = squeeze(FW{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
+            xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tnridx(tt,:)))];
+            % generate label vector
+            yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
+            % test data (from GLM with trained HRF regressor on unseen data)
+            % append features for hbo and hbr and all channels without SS
+            fvbuf = [];
+            fvbuf = squeeze(FW{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+            xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tstidx(tt)))];
+            % generate label vector
+            yTstF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
+        end
+        %feature vector dimensionality
+        nfeat(gg,sbj,tt) = size(xTrF{gg,sbj,tt},1);
+    end
+end
+glab = {'W | GLM'};
+
 %% for conventional features
 % select features
-flab = {'min |', 'max |', 'p2p |', 'avg |', 't2p |', 'slope w1 |', 'slope w2 |'};
-fsel = [4];
-% for all subjects
-FW = {FMdc', FMss, FMcca};
-for gg = 1:3
+flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope ', 'slope w2 '};
+mlab = {'no GLM', 'GLM'};
+fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6], [6],...
+    [3,4], [3,4], [3,5], [3,5], [3,6], [3,6], [4,5], [4,5], [4,6], [4,6], ...
+    [5,6],[5,6]};
+
+FW = {FMdc', FMss};
+% for all features
+for gg = 2:numel(fsel)
+    % for all subjects
     for sbj=1:numel(TTM)
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
-            if gg == 1
+            if mod(gg,2)+1 == 1
                 cvidx = 1;
             else
                 cvidx = tt;
@@ -73,57 +110,32 @@ for gg = 1:3
                 % train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = FW{gg}{sbj,cvidx}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc);
+                fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc);
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
                 % generate label vector
                 yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
                 % test data (from GLM with trained HRF regressor on unseen data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,cvidx}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+                fvbuf = squeeze(FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},1:2,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
                 xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
                 % generate label vector
                 yTstF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
+                % feature vector dimensionality
+                nfeat(gg,sbj,tt) = size(xTrF{gg,sbj,tt},1);
             end
         end
+        glab{gg}= [join([join(flab(fsel{gg})) mlab{mod(gg,2)+1}])];
     end
 end
 
 
-%% for weight features from GLM methods
-FW = {[], FWss, FWcca};
-for gg = 2:3
-    % for all subjects
-    for sbj=1:numel(TTM)
-        % for all trials
-        for tt = 1:numel(TTM{sbj}.tstidx)
-            xTrW{gg,sbj,tt} =[];
-            xTstW{gg,sbj,tt}=[];
-            yTrW{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
-            yTstW{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
-            for cc=1:2
-                % train data  (from GLM with trained HRF regressor on seen training data)
-                % append features for hbo and hbr and all channels without SS
-                fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
-                xTrW{gg,sbj,tt} = [xTrW{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tnridx(tt,:)))];
-                % generate label vector
-                yTrW{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
-                % test data (from GLM with trained HRF regressor on unseen data)
-                % append features for hbo and hbr and all channels without SS
-                fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,tt}(:,:,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
-                xTstW{gg,sbj,tt} = [xTstW{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2),numel(TTM{sbj}.tstidx(tt)))];
-                % generate label vector
-                yTstW{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
-            end
-        end
-    end
-end
 
-%% CROSSVALIDATION using rLDA as classifier and normal features
-% for all methods (1> NO GLM, 2> GLM SS, 3> GLM CCA)
-for gg = 1:3
+
+%% CROSSVALIDATION using rLDA as classifier and all features 
+% for all methods/feature types (1> NO GLM, 2> GLM SS, 3> GLM CCA)
+for gg = 1:size(xTrF,1)
+    disp(['CV for all subjects and feature set ' num2str(gg) '...'])
     % for all subjects
     for sbj=1:numel(TTM)
         % for all splits
@@ -145,54 +157,88 @@ end
 accuracyGLMF = 1-lossAvgF;
 meanaccsF = mean(accuracyGLMF,2);
 
-
-figure
-bar(accuracyGLMF)
-hold on
-plot([.5 3.5], [0.5 0.5], '--k')
-set(gca,'xtickLabel',{...
-    ['no GLM (' num2str(100*meanaccsF(1), '%2.1f') '%)'], ...
-    ['GLM SS (' num2str(100*meanaccsF(2),'%2.1f') '%)'], ...
-    ['GLM tCCA (' num2str(100*meanaccsF(3),'%2.1f') '%)']})
-ylabel('mean accuracy / subject')
-title(['Normal Features ' flab{fsel}])
-
-
-
-%% CROSSVALIDATION using rLDA as classifier and weight features
-% for GLM methods ( 2> GLM SS, 3> GLM CCA)
-
-for gg = 2:3
-    % for all subjects
-    for sbj=1:numel(TTM)
-        % for all splits
-        for tt=1:numel(TTM{sbj}.tstidx)
-            
-            %% training of rLDA
-            C = train_RLDAshrink(xTrW{gg,sbj,tt}, yTrW{gg,sbj,tt});
-            
-            %% testing of rLDA
-            fv.x = xTstW{gg,sbj,tt};
-            fv.y = yTstW{gg,sbj,tt};
-            out = applyClassifier(fv, C);
-            % loss function
-            lossW{gg,sbj}(tt,:,:)=loss_classwiseNormalized(fv.y, out, size(fv.y));
-        end
-        lossAvgW(gg,sbj) = mean(lossW{gg,sbj}(:));
-    end
+% Plot Classification results
+glmacc = round(accuracyGLMF(1:2:end,:)*1000)/10;
+noglmacc(1,1:numel(TTM)) = 0;
+noglmacc = round([noglmacc; accuracyGLMF(2:2:end,:)]*1000)/10;
+% xticklabels (class accuracies)
+xtckglm =  round(meanaccsF(1:2:end,:)*1000)/10;
+xtcknoglm(1) = 0;
+xtcknoglm = round([xtcknoglm; meanaccsF(2:2:end)]*1000)/10;
+% used feature labels
+fidx = fsel(1:2:end);
+for i=1:numel(fidx)
+    uflab{i} = string(join(flab(fidx{i})))
 end
-accuracyGLMW = 1-lossAvgW;
-accuracyGLMW(1,:)=0;
-meanaccsW = mean(accuracyGLMW,2);
-
+uflab{1} = '\beta GLM ';
 
 figure
-bar(accuracyGLMW)
+subplot(2,1,1)
 hold on
-plot([.5 3.5], [0.5 0.5], '--k')
-set(gca,'xtickLabel',{...
-    '', ...
-    ['GLM SS (' num2str(100*meanaccsW(2),'%2.1f') '%)'], ...
-    ['GLM tCCA (' num2str(100*meanaccsW(3),'%2.1f') '%)']})
-ylabel('mean accuracy / subject')
-title('Weight Features')
+plot([.5 13.5], [50 50], '--k')
+bar(glmacc)
+ylabel('sbj avg accuracy / %')
+xlim([0.5 13.5])
+xticks(1:13)
+xticklabels(xtckglm)
+% create upper x axis for feature type labels
+ax1 = gca;
+ax2 = axes('Position',ax1.Position,...
+    'XAxisLocation','top',...
+    'YAxisLocation','right',...
+    'Color','none');
+xlim([0.5, 13.5])
+xticks(1:13)
+yticks([])
+xticklabels(uflab)
+subplot(2,1,2)
+hold on
+plot([.5 13.5], [50 50], '--k')
+xlim([0.5, 13.5])
+xticks(1:13)
+yticks([])
+bar(noglmacc)
+ylabel('sbj avg accuracy / %')
+xticks(1:13)
+xticklabels(xtcknoglm)
+
+
+
+
+% %% CROSSVALIDATION using rLDA as classifier and weight features
+% % for GLM methods ( 2> GLM SS, 3> GLM CCA)
+% 
+% for gg = 2:3
+%     % for all subjects
+%     for sbj=1:numel(TTM)
+%         % for all splits
+%         for tt=1:numel(TTM{sbj}.tstidx)
+%             
+%             %% training of rLDA
+%             C = train_RLDAshrink(xTrW{gg,sbj,tt}, yTrW{gg,sbj,tt});
+%             
+%             %% testing of rLDA
+%             fv.x = xTstW{gg,sbj,tt};
+%             fv.y = yTstW{gg,sbj,tt};
+%             out = applyClassifier(fv, C);
+%             % loss function
+%             lossW{gg,sbj}(tt,:,:)=loss_classwiseNormalized(fv.y, out, size(fv.y));
+%         end
+%         lossAvgW(gg,sbj) = mean(lossW{gg,sbj}(:));
+%     end
+% end
+% accuracyGLMW = 1-lossAvgW;
+% accuracyGLMW(1,:)=0;
+% meanaccsW = mean(accuracyGLMW,2);
+% 
+% 
+% figure
+% bar(accuracyGLMW)
+% hold on
+% plot([.5 3.5], [0.5 0.5], '--k')
+% set(gca,'xtickLabel',{...
+%     '', ...
+%     ['GLM SS (' num2str(100*meanaccsW(2),'%2.1f') '%)'], ...
+%     ['GLM tCCA (' num2str(100*meanaccsW(3),'%2.1f') '%)']})
+% ylabel('mean accuracy / subject')
+% title('Weight Features')
