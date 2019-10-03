@@ -196,7 +196,6 @@ hold on
 plot([.5 13.5], [50 50], '--k')
 xlim([0.5, 13.5])
 xticks(1:13)
-yticks([])
 bar(noglmacc)
 ylabel('sbj avg accuracy / %')
 xticks(1:13)
