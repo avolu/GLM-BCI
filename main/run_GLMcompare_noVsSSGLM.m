@@ -1,7 +1,7 @@
 clear all;
 
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -37,7 +37,8 @@ end
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
 set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
-sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94', 'Subj95', 'Subj96', 'Subj97', 'Subj98'}; % potentially exclude Subj94 (only 4 channels HRF added because of motion)
+sbjfolder = {'Subj86','Subj91','Subj92','Subj94','Subj95','Subj96','Subj97','Subj98','Subj99','Subj100','Subj101','Subj102'};
+ % potentially exclude Subj94 (only 4 channels HRF added because of motion)
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
