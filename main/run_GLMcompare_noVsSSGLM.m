@@ -1,7 +1,7 @@
 clear all;
 
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -21,7 +21,7 @@ end
 
 % #####
 % 50 or 100% hrf?
-hrf_amp = 100;
+hrf_amp = 50;
 
 %% simulated data file names %% load ground truth hrf
 switch hrf_amp
@@ -144,14 +144,19 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     pre_stim_t{2} = onset_stim_rest+eval_param.HRFmin*fq;
     post_stim_t{2} = onset_stim_rest+eval_param.HRFmax*fq;
         
+    % onset_stimulus for both conditions
+    onset_stim_all{1} = onset_stim;
+    onset_stim_all{2} = onset_stim_rest; 
+ 
     for os = 1:size(onset_stim,1)%% loop around each stimulus
         % write train/test flag matrix
         TTM{sbj}.tstidx(os)=os;
         TTM{sbj}.tnridx(os,:) = setdiff(1:size(onset_stim,1), os);
         
         for cc=1:2
-            %% Save normal raw data in single trials and calculate features
-            y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
+            %% Save normal raw data in single trials and remove baseline
+            y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:)- ...
+                repmat(mean(dc_linear_detrend(pre_stim_t{cc}(os):onset_stim_all{cc}(os),:,:),1),numel(pre_stim_t{cc}(os):post_stim_t{cc}(os)),1);
         end
         
         % *****************************************************

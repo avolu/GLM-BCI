@@ -19,7 +19,9 @@ else
 end
 
 %% load data
-load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
+%load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
+load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+
 
 % load and init BBCI toolbox
 % bbci toolbox paths
@@ -48,11 +50,14 @@ rr = 1;
 epo.className = {'STIM', 'REST'};
 epo.clab = FMclab;
 
+%% sbj list
+sbjl = [1:3 5:12];
+
 %% get weight features from GLM method
 FW = FWss;
 % for all subjects
 gg=1;
-for sbj=1:numel(TTM)
+for sbj=sbjl
     % for all trials
     for tt = 1:numel(TTM{sbj}.tstidx)
         xTrF{gg,sbj,tt} =[];
@@ -93,7 +98,7 @@ FW = {FMdc', FMss};
 % for all features
 for gg = 2:numel(fsel)
     % for all subjects
-    for sbj=1:numel(TTM)
+    for sbj=sbjl
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
             if mod(gg,2)+1 == 1
@@ -137,7 +142,7 @@ end
 for gg = 1:size(xTrF,1)
     disp(['CV for all subjects and feature set ' num2str(gg) '...'])
     % for all subjects
-    for sbj=1:numel(TTM)
+    for sbj=sbjl
         % for all splits
         for tt=1:numel(TTM{sbj}.tstidx)
             
