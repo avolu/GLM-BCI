@@ -33,6 +33,9 @@ switch hrf_amp
         hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
 end
 
+% single trial linear detrending for no-GLM approach?
+stlindet = false;
+
 %% save folder name
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
@@ -83,7 +86,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     
     %% load data
     [fq, t, AUX, d_long, d_short, d0_long, d0_short, d, d0, SD, s, lstLongAct{sbj},lstShortAct{sbj},lstHrfAdd{sbj}] = load_nirs(filename,flag_conc,flag_detrend);
-        
+    
     %% check if the number of time points is odd/even, if odd make it even... (number of embedded should be the same)
     if mod(size(AUX,1),2) == 1
         AUX(end,:)=[];
@@ -143,11 +146,11 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     post_stim_t{1} = onset_stim+eval_param.HRFmax*fq;
     pre_stim_t{2} = onset_stim_rest+eval_param.HRFmin*fq;
     post_stim_t{2} = onset_stim_rest+eval_param.HRFmax*fq;
-        
+    
     % onset_stimulus for both conditions
     onset_stim_all{1} = onset_stim;
-    onset_stim_all{2} = onset_stim_rest; 
- 
+    onset_stim_all{2} = onset_stim_rest;
+    
     for os = 1:size(onset_stim,1)%% loop around each stimulus
         % write train/test flag matrix
         TTM{sbj}.tstidx(os)=os;
@@ -157,6 +160,11 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             %% Save normal raw data in single trials and remove baseline
             y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:)- ...
                 repmat(mean(dc_linear_detrend(pre_stim_t{cc}(os):onset_stim_all{cc}(os),:,:),1),numel(pre_stim_t{cc}(os):post_stim_t{cc}(os)),1);
+            %% Linear detrend single trial
+            if stlindet
+                tdet= t(pre_stim_t{cc}(os):post_stim_t{cc}(os));
+                y_raw(:,:,:,os,cc) = linear_detrend(y_raw(:,:,:,os,cc), tdet);
+            end
         end
         
         % *****************************************************
@@ -202,7 +210,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 yavg_ss = ynew_ss;
                 yavg_cca = ynew_cca;
             end
-
+            
             % display current state:
             disp(['sbj ' num2str(sbj) ', epoch ' num2str(os) ])
         end
@@ -232,7 +240,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) '_tccaIndiv_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindrift_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;

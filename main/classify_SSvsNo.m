@@ -18,11 +18,6 @@ else
     path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA'; % save directory
 end
 
-%% load data
-%load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
-load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
-
-
 % load and init BBCI toolbox
 % bbci toolbox paths
 if malexflag
@@ -42,6 +37,23 @@ else
     cd(paths.bbciDir);
     startup_bbci_toolbox('DataDir', paths.bbciDataDir, 'TmpDir',paths.bbciTmpDir);
 end
+
+%%choose HRF level
+hrflab = {'HRF 100%', 'HRF 50%'};
+hh = 1;
+
+
+disp(['running for ' hrflab{hh} '...'])
+%% load data
+switch hh
+    case 1 % 100%
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
+    case 2 % 50%
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+end
+
 
 % use hrf STIM regressor weights as features (not the REST regressor
 % weights, as they are useless here)
@@ -134,10 +146,7 @@ for gg = 2:numel(fsel)
     end
 end
 
-
-
-
-%% CROSSVALIDATION using rLDA as classifier and all features 
+%% CROSSVALIDATION using rLDA as classifier and all features
 % for all methods/feature types (1> NO GLM, 2> GLM SS, 3> GLM CCA)
 for gg = 1:size(xTrF,1)
     disp(['CV for all subjects and feature set ' num2str(gg) '...'])
@@ -159,17 +168,17 @@ for gg = 1:size(xTrF,1)
         lossAvgF(gg,sbj) = mean(lossF{gg,sbj}(:));
     end
 end
-accuracyGLMF = 1-lossAvgF;
-meanaccsF = mean(accuracyGLMF,2);
+accuracyGLMF{hh} = 1-lossAvgF;
+meanaccsF{hh} = mean(accuracyGLMF{hh}(:,sbjl),2);
 
-% Plot Classification results
-glmacc = round(accuracyGLMF(1:2:end,:)*1000)/10;
-noglmacc(1,1:numel(TTM)) = 0;
-noglmacc = round([noglmacc; accuracyGLMF(2:2:end,:)]*1000)/10;
+%% Plot Classification results
+glmacc = round(accuracyGLMF{hh}(1:2:end,sbjl)*1000)/10;
+noglmacc(1,1:numel(sbjl)) = 0;
+noglmacc = round([noglmacc; accuracyGLMF{hh}(2:2:end,sbjl)]*1000)/10;
 % xticklabels (class accuracies)
-xtckglm =  round(meanaccsF(1:2:end,:)*1000)/10;
+xtckglm =  round(meanaccsF{hh}(1:2:end,:)*1000)/10;
 xtcknoglm(1) = 0;
-xtcknoglm = round([xtcknoglm; meanaccsF(2:2:end)]*1000)/10;
+xtcknoglm = round([xtcknoglm; meanaccsF{hh}(2:2:end)]*1000)/10;
 % used feature labels
 fidx = fsel(1:2:end);
 for i=1:numel(fidx)
@@ -180,8 +189,8 @@ uflab{1} = '\beta GLM ';
 figure
 subplot(2,1,1)
 hold on
+bar(glmacc,'EdgeColor','none','BarWidth',1)
 plot([.5 13.5], [50 50], '--k')
-bar(glmacc)
 ylabel('sbj avg accuracy / %')
 xlim([0.5 13.5])
 xticks(1:13)
@@ -198,51 +207,16 @@ yticks([])
 xticklabels(uflab)
 subplot(2,1,2)
 hold on
-plot([.5 13.5], [50 50], '--k')
 xlim([0.5, 13.5])
 xticks(1:13)
-bar(noglmacc)
+bar(noglmacc,'EdgeColor','none','BarWidth',1)
+plot([.5 13.5], [50 50], '--k')
 ylabel('sbj avg accuracy / %')
 xticks(1:13)
 xticklabels(xtcknoglm)
 
+% Perform paired tt-tests
+[h{hh},p{hh}]= ttest(accuracyGLMF{hh}(3:2:end,sbjl), accuracyGLMF{hh}(2:2:end,sbjl));
 
 
 
-% %% CROSSVALIDATION using rLDA as classifier and weight features
-% % for GLM methods ( 2> GLM SS, 3> GLM CCA)
-% 
-% for gg = 2:3
-%     % for all subjects
-%     for sbj=1:numel(TTM)
-%         % for all splits
-%         for tt=1:numel(TTM{sbj}.tstidx)
-%             
-%             %% training of rLDA
-%             C = train_RLDAshrink(xTrW{gg,sbj,tt}, yTrW{gg,sbj,tt});
-%             
-%             %% testing of rLDA
-%             fv.x = xTstW{gg,sbj,tt};
-%             fv.y = yTstW{gg,sbj,tt};
-%             out = applyClassifier(fv, C);
-%             % loss function
-%             lossW{gg,sbj}(tt,:,:)=loss_classwiseNormalized(fv.y, out, size(fv.y));
-%         end
-%         lossAvgW(gg,sbj) = mean(lossW{gg,sbj}(:));
-%     end
-% end
-% accuracyGLMW = 1-lossAvgW;
-% accuracyGLMW(1,:)=0;
-% meanaccsW = mean(accuracyGLMW,2);
-% 
-% 
-% figure
-% bar(accuracyGLMW)
-% hold on
-% plot([.5 3.5], [0.5 0.5], '--k')
-% set(gca,'xtickLabel',{...
-%     '', ...
-%     ['GLM SS (' num2str(100*meanaccsW(2),'%2.1f') '%)'], ...
-%     ['GLM tCCA (' num2str(100*meanaccsW(3),'%2.1f') '%)']})
-% ylabel('mean accuracy / subject')
-% title('Weight Features')
