@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -27,10 +27,10 @@ disp(['running for ' hrflab{hh} '...'])
 %% load data
 switch hh
     case 1 % 100%
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
     case 2 % 50%
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
 end
 
@@ -60,7 +60,7 @@ hrfdat.t = hrf.t_hrf';
 FV_Raw = cell(2);
 FV_SS = cell(2,2);
 %% sbj list
-sbjl = [1:3 5:12];
+sbjl = [1:3 5:14];
 for sbj = sbjl
     % only look at the crossvalidated test results. These are stored where cell and trial index
     % coincide (== os)

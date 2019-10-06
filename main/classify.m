@@ -32,7 +32,7 @@ end
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_hrf_amp50_20soffs.mat'])
 
 % individualized parameters
-load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs'])
 
 
 % load and init BBCI toolbox

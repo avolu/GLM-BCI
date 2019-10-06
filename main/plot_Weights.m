@@ -5,7 +5,7 @@ if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
     path.dir = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
-    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca'; % save directory
+    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\'; % save directory
     
     %Meryem Laptop
     %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -31,7 +31,8 @@ end
 %load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_hrf_amp50_20soffs.mat'])
 
 % individualized parameters
-load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat']);
+
 
 
 %% Get HRF features from all augmented channels to compare against  ground truth

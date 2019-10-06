@@ -1,7 +1,7 @@
 clear all;
 
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -21,7 +21,7 @@ end
 
 % #####
 % 50 or 100% hrf?
-hrf_amp = 50;
+hrf_amp = 100;
 
 %% simulated data file names %% load ground truth hrf
 switch hrf_amp
@@ -34,13 +34,13 @@ switch hrf_amp
 end
 
 % single trial linear detrending for no-GLM approach?
-stlindet = false;
+stlindet = true;
 
 %% save folder name
 sfoldername = '\CV_results_data';
 set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
 set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
-sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94', 'Subj95', 'Subj96', 'Subj97', 'Subj98', 'Subj99', 'Subj100', 'Subj101', 'Subj102'}; % potentially exclude Subj94 (only 4 channels HRF added because of motion)
+sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94', 'Subj95', 'Subj96', 'Subj97', 'Subj98', 'Subj99', 'Subj100', 'Subj101', 'Subj102','Subj103', 'Subj104'}; % potentially exclude Subj94 (only 4 channels HRF added because of motion)
 
 
 %% Options/Parameter Settings
@@ -157,14 +157,25 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         TTM{sbj}.tnridx(os,:) = setdiff(1:size(onset_stim,1), os);
         
         for cc=1:2
-            %% Save normal raw data in single trials and remove baseline
-            y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:)- ...
-                repmat(mean(dc_linear_detrend(pre_stim_t{cc}(os):onset_stim_all{cc}(os),:,:),1),numel(pre_stim_t{cc}(os):post_stim_t{cc}(os)),1);
-            %% Linear detrend single trial
+%             %% Save normal raw data in single trials and remove baseline
+%             y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:)- ...
+%                 repmat(mean(dc_linear_detrend(pre_stim_t{cc}(os):onset_stim_all{cc}(os),:,:),1),numel(pre_stim_t{cc}(os):post_stim_t{cc}(os)),1);
+%             %% Linear detrend single trial
+%             if stlindet
+%                 tdet= t(pre_stim_t{cc}(os):post_stim_t{cc}(os));
+%                 y_raw(:,:,:,os,cc) = linear_detrend(y_raw(:,:,:,os,cc), tdet);
+%             end
+            
+            %% Save normal raw data in single trials 
+             y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
+            % Linear detrend single trial
             if stlindet
                 tdet= t(pre_stim_t{cc}(os):post_stim_t{cc}(os));
                 y_raw(:,:,:,os,cc) = linear_detrend(y_raw(:,:,:,os,cc), tdet);
             end
+            % remove baseline 
+            y_raw(:,:,:,os,cc)= y_raw(:,:,:,os,cc)- repmat(mean(y_raw(1:abs(eval_param.HRFmin*fq),:,:,os,cc),1),numel(1:size(y_raw,1)),1);
+         
         end
         
         % *****************************************************
@@ -240,7 +251,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindrift_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;

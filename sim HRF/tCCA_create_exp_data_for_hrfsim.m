@@ -11,10 +11,10 @@ else
 end
 
 path.fname = 'resting.nirs';
-path.hrfname = 'hrf_simdat_100_shorterHRF.mat';
-path.savename = 'resting_sim_100_shorterHRF.nirs';
+path.hrfname = 'hrf_simdat_50_shorterHRF.mat';
+path.savename = 'resting_sim_50_shorterHRF.nirs';
 addpath(genpath(path.code));
-sbjfolder = {'Subj86','Subj91','Subj92','Subj94','Subj95','Subj96','Subj97','Subj98','Subj99','Subj100','Subj101','Subj102'};
+sbjfolder = {'Subj86','Subj91','Subj92','Subj94','Subj95','Subj96','Subj97','Subj98','Subj99','Subj100','Subj101','Subj102','Subj103','Subj104'};
 
 
 for ss = 1:numel(sbjfolder) % loop across subjects
