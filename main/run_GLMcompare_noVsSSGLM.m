@@ -21,7 +21,7 @@ end
 
 % #####
 % 50 or 100% hrf?
-hrf_amp = 100;
+hrf_amp = 50;
 
 %% simulated data file names %% load ground truth hrf
 switch hrf_amp

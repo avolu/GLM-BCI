@@ -40,7 +40,7 @@ end
 
 %%choose HRF level
 hrflab = {'HRF 100%', 'HRF 50%'};
-hh = 1;
+hh = 2;
 
 
 disp(['running for ' hrflab{hh} '...'])
