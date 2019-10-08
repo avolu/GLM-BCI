@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 0; % user flag
+malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -50,6 +50,7 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
+        load([path.save '\test.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
@@ -67,8 +68,9 @@ epo.clab = FMclab;
 %% sbj list
 sbjl = [1:3 5:14];
 %% chromophores (HbO / HbR)
-chrom = [1];
-
+chrom = [1 2];
+%% channel selection
+cfact=4;
 
 %% get weight features from GLM method
 %dimensionality of FWss:
@@ -77,6 +79,9 @@ FW = FWss;
 % for all subjects
 gg=1;
 for sbj=sbjl
+    %ch selection
+    chsel = lstLongAct{sbj};
+    chsel = chsel(1:floor(numel(chsel)/cfact));
     % for all trials
     for tt = 1:numel(TTM{sbj}.tstidx)
         xTrF{gg,sbj,tt} =[];
@@ -88,7 +93,7 @@ for sbj=sbjl
             % train data  (from GLM with trained HRF regressor on seen training data)
             % append features for  chromophores(hbo and hbr) and all channels without SS
             fvbuf = [];
-            fvbuf = squeeze(FW{sbj,tt}(:,chrom,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
+            fvbuf = squeeze(FW{sbj,tt}(:,chrom,chsel,TTM{sbj}.tnridx(tt,:),cc,rr));
             if numel(chrom) == 1
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} fvbuf];
             else
@@ -99,7 +104,7 @@ for sbj=sbjl
             % test data (from GLM with trained HRF regressor on unseen data)
             % append features for hbo and hbr and all channels without SS
             fvbuf = [];
-            fvbuf = squeeze(FW{sbj,tt}(:,chrom,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+            fvbuf = squeeze(FW{sbj,tt}(:,chrom,chsel,TTM{sbj}.tstidx(tt),cc,rr));
             if numel(chrom) == 1
                 xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} fvbuf];
             else
@@ -128,6 +133,9 @@ FW = {FMdc', FMss};
 for gg = 2:numel(fsel)
     % for all subjects
     for sbj=sbjl
+        %ch selection
+    chsel = lstLongAct{sbj};
+    chsel = chsel(1:floor(numel(chsel)/cfact));
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
             if mod(gg,2)+1 == 1
@@ -144,14 +152,14 @@ for gg = 2:numel(fsel)
                 % train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc);
+                fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,chsel,TTM{sbj}.tnridx(tt,:),cc);
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
                 % generate label vector
                 yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
                 % test data (from GLM with trained HRF regressor on unseen data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf =FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,lstLongAct{sbj},TTM{sbj}.tstidx(tt),cc,rr);
+                fvbuf =FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,chsel,TTM{sbj}.tstidx(tt),cc,rr);
                 xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
                 % generate label vector
                 yTstF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
