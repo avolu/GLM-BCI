@@ -21,7 +21,7 @@ end
 
 % #####
 % 50 or 100% hrf?
-hrf_amp = 50;
+hrf_amp = 100;
 
 %% simulated data file names %% load ground truth hrf
 switch hrf_amp
@@ -55,7 +55,7 @@ eval_param.pre = 5;  % HRF range in sec to calculate ttest
 eval_param.post = 8;
 flag_detrend = 0; % input paramater to load_nirs function: performing linear detrend if 1, no detrending if 0 during "pre-processing"
 drift_term = 1; % input parameter to hmrDeconvHRF_DriftSS function: performing linear detrend for GLM_SS and GLM_CCA during single trial estimation
-polyOrder_drift_hrfestimate = 3; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
+polyOrder_drift_hrfestimate = 1; % input parameter to hmrDeconvHRF_DriftSS function: polynomial order, performs linear/polynomial detrending during estimation of HRF from training data
 flag_hrf_resid = 0; % 0: hrf only; 1: hrf+yresid
 
 % Features/structs for feature extraction function
@@ -64,6 +64,7 @@ ival = [eval_param.HRFmin eval_param.HRFmax];
 
 % motion artifact detection
 motionflag = false;
+motioncorr_flag = false;
 
 %% Eval plot flag (developing/debugging purposes only)
 evalplotflag = 0; % compares dc, hrf_ss, hrf_tcca, true hrf for hrf added channels
@@ -106,6 +107,12 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
     
     %% convert testing fNIRS data to concentration and detect motion artifacts
     dod = hmrIntensity2OD(d(cvIDX,:));
+    
+    
+    if motioncorr_flag
+    dod = hmrMotionCorrectSplineSG(dod, d(cvIDX,:), t(cvIDX,:), SD, 0.99, 10, 1);
+    end
+    
     s = s(cvIDX,:);
     t = t(cvIDX,:);
     % motion artifact removal?
@@ -219,7 +226,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % use HRF + residual?
             if flag_hrf_resid
                 yavg_ss = ynew_ss;
-                yavg_cca = ynew_cca;
+%                 yavg_cca = ynew_cca;
             end
             
             % display current state:
@@ -251,7 +258,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_mot_corr' num2str(motioncorr_flag) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;
