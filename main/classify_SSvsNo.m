@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -50,7 +50,7 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
-        load([path.save '\test.mat'])
+        %load([path.save '\test.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
@@ -69,8 +69,8 @@ epo.clab = FMclab;
 sbjl = [1:3 5:14];
 %% chromophores (HbO / HbR)
 chrom = [1 2];
-%% channel selection
-cfact=4;
+%% channel selection (fraction of available channels) 
+cfact=1;
 
 %% get weight features from GLM method
 %dimensionality of FWss:
@@ -80,8 +80,7 @@ FW = FWss;
 gg=1;
 for sbj=sbjl
     %ch selection
-    chsel = lstLongAct{sbj};
-    chsel = chsel(1:floor(numel(chsel)/cfact));
+    chsel = lstLongAct{sbj}(1:floor(numel(lstLongAct{sbj})/cfact));
     % for all trials
     for tt = 1:numel(TTM{sbj}.tstidx)
         xTrF{gg,sbj,tt} =[];
@@ -196,6 +195,23 @@ end
 accuracyGLMF{hh} = 1-lossAvgF;
 meanaccsF{hh} = mean(accuracyGLMF{hh}(:,sbjl),2);
 
+%% Perform paired tt-tests for classification results between methods
+fno = floor(size(accuracyGLMF{hh},1)/2);
+ pvlab{1} ='';
+for ff = 1:fno
+    [h{hh}(ff),p{hh}(ff)]= ttest(accuracyGLMF{hh}(ff*2+1,sbjl), accuracyGLMF{hh}(ff*2,sbjl));
+    if p{hh}(ff)>0.05
+        pvlab{ff+1} ='';
+    elseif p{hh}(ff) <=0.05
+        pvlab{ff+1} ='*';
+    elseif p{hh}(ff) <=1e-2
+        pvlab{ff+1} ='**';
+    elseif p{hh}(ff) <=1e-3
+        pvlab{ff+1} ='***';
+    end
+end
+
+
 %% Plot Classification results
 glmacc = round(accuracyGLMF{hh}(1:2:end,sbjl)*1000)/10;
 noglmacc(1,1:numel(sbjl)) = 0;
@@ -239,9 +255,13 @@ plot([.5 13.5], [50 50], '--k')
 ylabel('sbj avg accuracy / %')
 xticks(1:13)
 xticklabels(xtcknoglm)
-
-% Perform paired tt-tests
-[h{hh},p{hh}]= ttest(accuracyGLMF{hh}(3:2:end,sbjl), accuracyGLMF{hh}(2:2:end,sbjl));
-
-
-
+% create upper x axis for pval labels
+ax1 = gca;
+ax2 = axes('Position',ax1.Position,...
+    'XAxisLocation','top',...
+    'YAxisLocation','right',...
+    'Color','none');
+xlim([0.5, 13.5])
+xticks(1:13)
+yticks([])
+xticklabels(pvlab)
