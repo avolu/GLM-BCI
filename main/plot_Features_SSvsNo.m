@@ -1,6 +1,6 @@
 clear all;
 
-malexflag = 1; % user flag
+malexflag = 0; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -21,7 +21,7 @@ end
 
 %%choose HRF level
 hrflab = {'HRF 100%', 'HRF 50%'};
-hh = 2;
+hh = 1;
 
 disp(['running for ' hrflab{hh} '...'])
 %% load data
@@ -214,7 +214,7 @@ hcol{2} = {rgb('DarkGray'), rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'),rgb(
     rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'),}; %rest
 % Plot both methods
 %number of bins
-nbins = 100;
+nbins = 1000;
 figure
 for ww = 1:numel(W)
     % for both chromophores
