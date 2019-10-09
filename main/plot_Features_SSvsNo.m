@@ -27,18 +27,20 @@ disp(['running for ' hrflab{hh} '...'])
 %% load data
 switch hh
     case 1 % 100%
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
         %% load ground truth hrf
         hrf = load([path.code '\sim HRF\hrf_simdat_100_shorterHRF.mat']);
     case 2 % 50%
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
+        load([path.save 'FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
         %% load ground truth hrf
         hrf = load([path.code '\sim HRF\hrf_simdat_50_shorterHRF.mat']);
 end
-
-
 
 % outlier symbol
 osymb = '';
