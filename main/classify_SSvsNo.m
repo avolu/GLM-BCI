@@ -68,8 +68,10 @@ epo.clab = FMclab;
 
 %% sbj list
 sbjl = [1:3 5:14];
+
 %% chromophores (HbO / HbR)
 chrom = [1 2];
+
 %% channel selection (fraction of available channels) 
 nchaddratio = 1/4;
 for sbj=sbjl
@@ -82,8 +84,9 @@ for sbj=sbjl
         chsel{sbj} = [ chselhrf{sbj} chselnohrf{sbj}' ];
     end
 end
-
-
+%% use only channels with hrf modulation? (if set to true, chsel will be overwritten)
+hrfchanonly = true;           
+            
 %% get weight features from GLM method
 %dimensionality of FWss:
 %Feature type | chromophore | channels | trials | condition | regressor
@@ -99,7 +102,22 @@ for sbj=sbjl
         yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
         % conditions
         for cc=1:2
-            % train data  (from GLM with trained HRF regressor on seen training data)
+           %% channel indices that have or dont have gt HRF
+            idxChHrf = lstHrfAdd{sbj}(:,1);
+            idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
+            if size(idxChHrf,1) > size(idxChNoHrf,1)
+                idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
+            else
+                idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
+            end
+            % number of available channels
+            nHrf = size(FMdc{sbj}(:,:,idxChHrf,:,cc));
+            nNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:,cc));
+            if hrfchanonly
+                chsel{sbj} = idxChHrf;
+            end
+            
+            %% train data  (from GLM with trained HRF regressor on seen training data)
             % append features for  chromophores(hbo and hbr) and all channels without SS
             fvbuf = [];
             fvbuf = squeeze(FW{sbj,tt}(:,chrom,chsel{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
@@ -141,7 +159,7 @@ FW = {FMdc', FMss};
 % for all features
 for gg = 2:numel(fsel)
     % for all subjects
-    for sbj=sbjl
+    for sbj=sbjl        
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
             if mod(gg,2)+1 == 1
@@ -155,7 +173,22 @@ for gg = 2:numel(fsel)
             yTrF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
             yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
             for cc=1:2
-                % train data  (from GLM with trained HRF regressor on seen training data)
+                %% channel indices that have or dont have gt HRF
+                idxChHrf = lstHrfAdd{sbj}(:,1);
+                idxChNoHrf = setdiff(lstLongAct{sbj},squeeze(lstHrfAdd{sbj}(:,1)));
+                if size(idxChHrf,1) > size(idxChNoHrf,1)
+                    idxChHrf = idxChHrf(1:size(idxChNoHrf,1));
+                else
+                    idxChNoHrf = idxChNoHrf(1:size(idxChHrf,1));
+                end
+                % number of available channels
+                nHrf = size(FMdc{sbj}(:,:,idxChHrf,:,cc));
+                nNoHrf = size(FMdc{sbj}(:,:,idxChNoHrf,:,cc));
+                if hrfchanonly
+                    chsel{sbj} = idxChHrf;
+                end
+                
+                %% train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
                 fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,chsel{sbj},TTM{sbj}.tnridx(tt,:),cc);
