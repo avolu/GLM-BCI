@@ -76,7 +76,7 @@ nirs_hrf.lstHrfAdd(:,1) = sort(nirs_hrf.lstLongAct(ridx));
 nirs_hrf.lstHrfAdd(:,2) = nirs_hrf.lstHrfAdd(:,1)+size(nirs_hrf.ml,1)/2;
 
 %% Window data (wsize windows) and determine (randomized) HRF onsets, create new s field
-wsize = 18; % window size in seconds
+wsize = 20; % window size in seconds
 % window onset points
 onsidx = 1:wsize*nirs_hrf.fs:numel(nirs_hrf.s);
 onsidx = onsidx(1:end-1);
@@ -84,9 +84,8 @@ onsidx = onsidx(1:end-1);
 maxoffs = 3.5; % max offset in seconds
 onsidx = onsidx+ceil(rand(numel(onsidx),1) * maxoffs*nirs_hrf.fs)';
 % create new s field and add triggers
-nirs_hrf.s = zeros(numel(nirs_hrf.s),2);
-nirs_hrf.s(onsidx(1:2:numel(onsidx)),1) = 1;
-nirs_hrf.s(onsidx(2:2:numel(onsidx)),2) = 1;
+nirs_hrf.s = zeros(numel(nirs_hrf.s),1);
+nirs_hrf.s(onsidx) = 1;
 
 
 %% Add sim HRFs to selected channels at generated time points
@@ -98,7 +97,7 @@ if utest % builds hrfs onto constant (ones) signal
 end
 
 % for all windows/onset timings
-for oo = 1:2:numel(onsidx) % skipping every other stimulus 
+for oo = 1:numel(onsidx)
     % indices (samples) within window
     widxes = onsidx(oo):1:onsidx(oo)+hrflen-1;
     % for all selected channels

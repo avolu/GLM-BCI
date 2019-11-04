@@ -71,7 +71,7 @@ sbjl = [1:3 5:14];
 %% chromophores (HbO / HbR)
 chrom = [1 2];
 %% channel selection (fraction of available channels) 
-nchaddratio = 0;
+nchaddratio = 1/4;
 for sbj=sbjl
     if nchaddratio == 0
         chsel{sbj} = lstLongAct{sbj};
