@@ -48,7 +48,7 @@ for e=1:size(dat.x, 4)
     %% max
     FV.x(2,:,1:nchan,e) = max(dat.x(t0:end,:,:,e));
     %% peak2peak
-    FV.x(3,:,1:nchan,e) = max(dat.x(t0:end,:,:,e))-min(dat.x(0:end,:,:,e));
+    FV.x(3,:,1:nchan,e) = max(dat.x(t0:end,:,:,e))-min(dat.x(t0:end,:,:,e));
     %% avg
     FV.x(4,:,1:nchan,e) = mean(dat.x(t0:end,:,:,e));
     for ch=1:size(dat.x,3)
