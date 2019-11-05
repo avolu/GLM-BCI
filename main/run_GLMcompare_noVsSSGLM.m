@@ -253,6 +253,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
         %% save info for t-test based channel selection (do only for HRF condition)
         cc=1;
         rr= 1;
+        %T x C x CH x E
         chselInfo{sbj}.BL_SS(os,:,:,:) = squeeze(mean(yavg_ss(1:abs(eval_param.HRFmin*fq),:,:,:,cc,rr),1));
         chselInfo{sbj}.PEAK_SS(os,:,:,:) = squeeze(mean(yavg_ss(abs(eval_param.HRFmin*fq)+(4*fq:8*fq),:,:,:,cc,rr),1));
 

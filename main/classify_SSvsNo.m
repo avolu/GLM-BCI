@@ -50,14 +50,16 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
-        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
+        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
-        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
+        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
 end
 
 
@@ -74,11 +76,11 @@ sbjl = [1:3 5:14];
 %% chromophores (HbO / HbR)
 chrom = [1 2];
 
-%% channel selection 
-chselType = 'hrfChanOnly';
+%% channel selection
+chselType = 'ttest';
 
 switch chselType
-    case 'ratio' % (fraction of available channels) 
+    case 'ratio' % (fraction of available channels)
         nchaddratio = 1/4;
         for sbj=sbjl
             if nchaddratio == 0
@@ -87,34 +89,74 @@ switch chselType
                 chselhrf{sbj} = lstHrfAdd{sbj}(1:ceil(size(lstHrfAdd{sbj},1)*nchaddratio));
                 chselnohrf{sbj} = setdiff(lstLongAct{sbj}, lstHrfAdd{sbj});
                 chselnohrf{sbj} = chselnohrf{sbj}(1:floor(numel(chselnohrf{sbj})*(1-nchaddratio)));
-                chsel{sbj,1} = [ chselhrf{sbj} chselnohrf{sbj}' ];
-                chsel{sbj,2} = chsel{sbj,1};
+                chsel{sbj,1,1} = [ chselhrf{sbj} chselnohrf{sbj}' ];
+                chsel{sbj,2,1} = chsel{sbj,1,1};
+                for tt = 1:numel(TTM{sbj}.tstidx)
+                    chsel{sbj,1,tt} = chsel{sbj,1,1};
+                    chsel{sbj,2,tt} = chsel{sbj,2,1};
+                end
             end
         end
-    case 'hrfChanOnly' % use only channels with known hrf modulation? 
+    case 'hrfChanOnly' % use only channels with known hrf modulation?
         %% channel indices that have or dont have gt HRF
         for sbj=sbjl
-                chsel{sbj,1} = lstHrfAdd{sbj}(:,1);
-                chsel{sbj,2} = chsel{sbj,1};
+            chsel{sbj,1,1} = lstHrfAdd{sbj}(:,1,1);
+            chsel{sbj,2,1} = chsel{sbj,1,1};
+            for tt = 1:numel(TTM{sbj}.tstidx)
+                chsel{sbj,1,tt} = chsel{sbj,1,1};
+                chsel{sbj,2,tt} = chsel{sbj,2,1};
+            end
         end
     case 'ttest' % perform channel selection based on baseline vs peak t-test
         for sbj=sbjl
-            for gg=1:2 % raw and GLM data
-                for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices
-                    chselInfo{sbj}.BL_SS(os,:,1:2,:);
-                    
-                    %for HbO
-                    [h,p] = ttest(x,y);
-                    % for HbR
-                    
+            gg=1; % raw data
+            %for both chromophores
+            for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices (select channels from train set)
+                for hh = 1:2
+                    for ch = 1:size(chselInfo{sbj}.BL_RAW,3) % for all channels
+                        bl = squeeze(chselInfo{sbj}.BL_RAW(TTM{sbj}.tnridx(tt,:),hh,ch));
+                        pk = squeeze(chselInfo{sbj}.PEAK_RAW(TTM{sbj}.tnridx(tt,:),hh,ch));
+                        h(hh,ch,tt) = ttest(bl, pk);
+                        if isnan(h(hh,ch,tt))
+                            h(hh,ch,tt)=0;
+                        end
+                    end
                 end
+                chsel{sbj,gg,tt} = find(h(1,:,tt)& h(2,:,tt));
             end
-            
-            
-            chsel{sbj,gg}
+            gg=2; % GLM data
+            %for both chromophores
+            for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices (select channels from train set)
+                for hh = 1:2
+                    for ch = 1:size(chselInfo{sbj}.BL_SS,3) % for all channels
+                        bl = squeeze(chselInfo{sbj}.BL_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:)));
+                        pk = squeeze(chselInfo{sbj}.PEAK_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:)));
+                        h(hh,ch,tt) = ttest(bl, pk);
+                        if isnan(h(hh,ch,tt))
+                            h(hh,ch,tt)=0;
+                        end
+                    end
+                end
+                chsel{sbj,gg,tt} = find(h(1,:,tt)& h(2,:,tt));
+            end
         end
-end       
-            
+end
+clear vars h
+
+%% summary comparison of selected channels vs channels with added hrf
+for sbj = sbjl
+    for gg = 1:2
+        for tt = 1:numel(TTM{sbj}.tstidx)
+            chNsel(sbj,gg,tt) = numel(chsel{sbj,gg,tt});
+            chSelOverlap(sbj,gg,tt) = numel(intersect(chsel{sbj,gg,tt}, lstHrfAdd{sbj}))/numel(lstHrfAdd{sbj}(:,1));
+        end
+    end
+end
+disp(['Across trial avg overlap selected channels and channels with HRF added [%] - No GLM: ' num2str(squeeze(mean(chSelOverlap(sbjl,1,:),3))')])
+disp(['Overall avg overlap selected channels and channels with HRF added [%] - No GLM: ' num2str(mean(squeeze(mean(chSelOverlap(sbjl,1,:),3))'))])
+disp(['Across trial avg overlap selected channels and channels with HRF added [%] - GLM SS: ' num2str(squeeze(mean(chSelOverlap(sbjl,2,:),3))')])
+disp(['Overall avg overlap selected channels and channels with HRF added [%] - GLM SS: ' num2str(mean(squeeze(mean(chSelOverlap(sbjl,2,:),3))'))])
+
 %% get weight features from GLM method
 %dimensionality of FWss:
 %Feature type | chromophore | channels | trials | condition | regressor
@@ -129,11 +171,13 @@ for sbj=sbjl
         yTrF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
         yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
         % conditions
-        for cc=1:2            
+        for cc=1:2
             %% train data  (from GLM with trained HRF regressor on seen training data)
             % append features for  chromophores(hbo and hbr) and all channels without SS
+            % select channels
+            csel = chsel{sbj,2,tt};  
             fvbuf = [];
-            fvbuf = squeeze(FW{sbj,tt}(:,chrom,chsel{sbj},TTM{sbj}.tnridx(tt,:),cc,rr));
+            fvbuf = squeeze(FW{sbj,tt}(:,chrom,csel,TTM{sbj}.tnridx(tt,:),cc,rr));
             if numel(chrom) == 1
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} fvbuf];
             else
@@ -144,7 +188,7 @@ for sbj=sbjl
             % test data (from GLM with trained HRF regressor on unseen data)
             % append features for hbo and hbr and all channels without SS
             fvbuf = [];
-            fvbuf = squeeze(FW{sbj,tt}(:,chrom,chsel{sbj},TTM{sbj}.tstidx(tt),cc,rr));
+            fvbuf = squeeze(FW{sbj,tt}(:,chrom,csel,TTM{sbj}.tstidx(tt),cc,rr));
             if numel(chrom) == 1
                 xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} fvbuf];
             else
@@ -172,7 +216,7 @@ FW = {FMdc', FMss};
 % for all features
 for gg = 2:numel(fsel)
     % for all subjects
-    for sbj=sbjl        
+    for sbj=sbjl
         % for all trials
         for tt = 1:numel(TTM{sbj}.tstidx)
             if mod(gg,2)+1 == 1
@@ -180,23 +224,25 @@ for gg = 2:numel(fsel)
             else
                 cvidx = tt;
             end
+            % channel selection
+            csel = chsel{sbj,mod(gg,2)+1,tt};
             
             xTrF{gg,sbj,tt} =[];
             xTstF{gg,sbj,tt}=[];
             yTrF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tnridx(tt,:)));
             yTstF{gg,sbj,tt}=zeros(numel(epo.className),2*numel(TTM{sbj}.tstidx(tt)));
-            for cc=1:2                
+            for cc=1:2
                 %% train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,chsel{sbj},TTM{sbj}.tnridx(tt,:),cc);
+                fvbuf = FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,csel,TTM{sbj}.tnridx(tt,:),cc);
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
                 % generate label vector
                 yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
                 % test data (from GLM with trained HRF regressor on unseen data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf =FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,chsel{sbj},TTM{sbj}.tstidx(tt),cc,rr);
+                fvbuf =FW{mod(gg,2)+1}{sbj,cvidx}(fsel{gg},chrom,csel,TTM{sbj}.tstidx(tt),cc,rr);
                 xTstF{gg,sbj,tt} = [xTstF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tstidx(tt)))];
                 % generate label vector
                 yTstF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tstidx(tt))+1:cc*numel(TTM{sbj}.tstidx(tt)))=1;
@@ -235,7 +281,7 @@ meanaccsF{hh} = mean(accuracyGLMF{hh}(:,sbjl),2);
 
 %% Perform paired tt-tests for classification results between methods
 fno = floor(size(accuracyGLMF{hh},1)/2);
- pvlab{1} ='';
+pvlab{1} ='';
 for ff = 1:fno
     [h{hh}(ff),p{hh}(ff)]= ttest(accuracyGLMF{hh}(ff*2+1,sbjl), accuracyGLMF{hh}(ff*2,sbjl));
     if p{hh}(ff)>0.05
@@ -261,7 +307,7 @@ xtcknoglm = round([xtcknoglm; meanaccsF{hh}(2:2:end)]*1000)/10;
 % used feature labels
 fidx = fsel(1:2:end);
 for i=1:numel(fidx)
-    uflab{i} = string(join(flab(fidx{i})))
+    uflab{i} = string(join(flab(fidx{i})));
 end
 uflab{1} = '\beta GLM ';
 
@@ -303,3 +349,5 @@ xlim([0.5, 13.5])
 xticks(1:13)
 yticks([])
 xticklabels(pvlab)
+
+disp(['Average accuracy improvement GLM vs no GLM: ' num2str(mean(xtckglm(2:end)-xtcknoglm(2:end))) '%'])
