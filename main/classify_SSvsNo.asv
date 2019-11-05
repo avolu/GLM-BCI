@@ -50,14 +50,12 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
-        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
-        %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
 end
 
 
@@ -75,7 +73,7 @@ sbjl = [1:3 5:14];
 chrom = [1 2];
 
 %% channel selection 
-chselType = 'hrfChanOnly';
+chselType = 'ttest';
 
 switch chselType
     case 'ratio' % (fraction of available channels) 
@@ -99,19 +97,13 @@ switch chselType
         end
     case 'ttest' % perform channel selection based on baseline vs peak t-test
         for sbj=sbjl
-            for gg=1:2 % raw and GLM data
-                for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices
-                    chselInfo{sbj}.BL_SS(os,:,1:2,:);
-                    
-                    %for HbO
-                    [h,p] = ttest(x,y);
-                    % for HbR
-                    
-                end
-            end
+            for gg=1:2 % raw 
+            chselInfo{sbj}.BL_SS(os,:,1:2,:)
             
-            
-            chsel{sbj,gg}
+            %for HbO
+            [h,p] = ttest(x,y)
+            % for HbR
+
         end
 end       
             

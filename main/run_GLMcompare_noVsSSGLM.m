@@ -184,10 +184,10 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             bl = repmat(mean(y_raw(1:abs(eval_param.HRFmin*fq),:,:,os,cc),1),numel(1:size(y_raw,1)),1);  
             y_raw(:,:,:,os,cc)= y_raw(:,:,:,os,cc)- bl;
             
-            % t-test for channel selection (do only for HRF condition)
+            %% save info for t-test based channel selection (do only for HRF condition)
             if cc==1
-                
-                
+                chselInfo{sbj}.BL_RAW(os,:,:) = squeeze(mean(y_raw(1:abs(eval_param.HRFmin*fq),:,:,os,cc),1));
+                chselInfo{sbj}.PEAK_RAW(os,:,:) = squeeze(mean(y_raw(abs(eval_param.HRFmin*fq)+(4*fq:8*fq),:,:,os,cc),1));
             end
         end
         
@@ -249,6 +249,13 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
                 [FMss{sbj,os}(:,:,:,:,cc,rr), FMclab] = getFeaturesAndMetrics(yavg_ss(:,:,:,:,cc,rr), fparam, ival, hrf);
             end
         end
+        
+        %% save info for t-test based channel selection (do only for HRF condition)
+        cc=1;
+        rr= 1;
+        chselInfo{sbj}.BL_SS(os,:,:,:) = squeeze(mean(yavg_ss(1:abs(eval_param.HRFmin*fq),:,:,:,cc,rr),1));
+        chselInfo{sbj}.PEAK_SS(os,:,:,:) = squeeze(mean(yavg_ss(abs(eval_param.HRFmin*fq)+(4*fq:8*fq),:,:,:,cc,rr),1));
+
         %% save weights
         FWss{sbj,os}=beta_ss;
     end
@@ -264,7 +271,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_mot_corr' num2str(motioncorr_flag) '_20soffs_ttstchsel.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_mot_corr' num2str(motioncorr_flag) '_20soffs_ttstchsel.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab', 'chselInfo');
 end
 
 toc;
