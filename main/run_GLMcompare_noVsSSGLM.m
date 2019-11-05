@@ -174,15 +174,21 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
 %             end
             
             %% Save normal raw data in single trials 
-             y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
+            y_raw(:,:,:,os,cc)= dc_linear_detrend(pre_stim_t{cc}(os):post_stim_t{cc}(os),:,:);
             % Linear detrend single trial
             if stlindet
                 tdet= t(pre_stim_t{cc}(os):post_stim_t{cc}(os));
                 y_raw(:,:,:,os,cc) = linear_detrend(y_raw(:,:,:,os,cc), tdet);
             end
             % remove baseline 
-            y_raw(:,:,:,os,cc)= y_raw(:,:,:,os,cc)- repmat(mean(y_raw(1:abs(eval_param.HRFmin*fq),:,:,os,cc),1),numel(1:size(y_raw,1)),1);
-         
+            bl = repmat(mean(y_raw(1:abs(eval_param.HRFmin*fq),:,:,os,cc),1),numel(1:size(y_raw,1)),1);  
+            y_raw(:,:,:,os,cc)= y_raw(:,:,:,os,cc)- bl;
+            
+            % t-test for channel selection (do only for HRF condition)
+            if cc==1
+                
+                
+            end
         end
         
         % *****************************************************
@@ -226,7 +232,7 @@ for sbj = 1:numel(sbjfolder) % loop across subjects
             % use HRF + residual?
             if flag_hrf_resid
                 yavg_ss = ynew_ss;
-%                 yavg_cca = ynew_cca;
+%               yavg_cca = ynew_cca;
             end
             
             % display current state:
@@ -258,7 +264,7 @@ clear vars AUX d d0 d_long d0_long d_short d0_short t s REG_trn ADD_trn
 %% save data
 if flag_save
     disp('saving data...')
-    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_mot_corr' num2str(motioncorr_flag) '_20soffs.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
+    save([path.save '\FV_results_SSvsNo_ldrift' num2str(drift_term) '_resid' num2str(flag_hrf_resid) 'stlindriftSWAPPED_' num2str(stlindet) '_hrf_amp' num2str(hrf_amp) '_mot_corr' num2str(motioncorr_flag) '_20soffs_ttstchsel.mat'], 'FMdc', 'FMss', 'FWss', 'TTM', 'lstHrfAdd', 'lstLongAct', 'lstShortAct', 'FMclab');
 end
 
 toc;
