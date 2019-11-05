@@ -114,9 +114,9 @@ switch chselType
             for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices (select channels from train set)
                 for hh = 1:2
                     for ch = 1:size(chselInfo{sbj}.BL_RAW,3) % for all channels
-                        bl = squeeze(chselInfo{sbj}.BL_RAW(TTM{sbj}.tnridx(tt,:),hh,ch));
-                        pk = squeeze(chselInfo{sbj}.PEAK_RAW(TTM{sbj}.tnridx(tt,:),hh,ch));
-                        h(hh,ch,tt) = ttest(bl, pk);
+                        pkc1 = squeeze(chselInfo{sbj}.PEAK_RAW(TTM{sbj}.tnridx(tt,:),hh,ch,1)); % peak condition 1 (stim)
+                        pkc2 = squeeze(chselInfo{sbj}.PEAK_RAW(TTM{sbj}.tnridx(tt,:),hh,ch,2)); % peak condition 2 (rest)
+                        h(hh,ch,tt) = ttest(pkc1, pkc2);
                         if isnan(h(hh,ch,tt))
                             h(hh,ch,tt)=0;
                         end
@@ -129,9 +129,9 @@ switch chselType
             for tt = 1:numel(TTM{sbj}.tstidx) % for all tst indices (select channels from train set)
                 for hh = 1:2
                     for ch = 1:size(chselInfo{sbj}.BL_SS,3) % for all channels
-                        bl = squeeze(chselInfo{sbj}.BL_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:)));
-                        pk = squeeze(chselInfo{sbj}.PEAK_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:)));
-                        h(hh,ch,tt) = ttest(bl, pk);
+                        pkc1 = squeeze(chselInfo{sbj}.PEAK_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:),1)); % peak condition 1 (stim)
+                        pkc2 = squeeze(chselInfo{sbj}.PEAK_SS(tt,hh,ch,TTM{sbj}.tnridx(tt,:),2)); % peak condition 2 (rest)
+                        h(hh,ch,tt) = ttest(pkc1, pkc2);
                         if isnan(h(hh,ch,tt))
                             h(hh,ch,tt)=0;
                         end
@@ -149,6 +149,7 @@ for sbj = sbjl
         for tt = 1:numel(TTM{sbj}.tstidx)
             chNsel(sbj,gg,tt) = numel(chsel{sbj,gg,tt});
             chSelOverlap(sbj,gg,tt) = numel(intersect(chsel{sbj,gg,tt}, lstHrfAdd{sbj}))/numel(lstHrfAdd{sbj}(:,1));
+            chSelperCorr(sbj,gg,tt) = numel(intersect(chsel{sbj,gg,tt}, lstHrfAdd{sbj}))/numel(chsel{sbj,gg,tt});
         end
     end
 end
