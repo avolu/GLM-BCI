@@ -50,16 +50,16 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
-%         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
-%         load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
-                load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
+        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+        %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
-%         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
-%         load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
-                load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
+        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+        %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
 end
 
 
@@ -78,9 +78,9 @@ chrom = [1 2];
 
 %% channel selection
 chselType = 'r2';
-
 switch chselType
     case {'all', 'r2'} % no selection, take all channels (r2 selection in CV down below)
+        nchanR2 = 10;
         for sbj=sbjl
             for tt = 1:numel(TTM{sbj}.tstidx)
                 for hh = 1:2
@@ -279,18 +279,14 @@ for gg = 1:size(xTrF,1)
             %% R2 based channel selection?
             switch chselType 
                 case 'r2'
-                    nchanR2 = 25; % number of features to keep
                     fv.x = xTrF{gg,sbj,tt};
                     fv.y = yTrF{gg,sbj,tt};
                     fv.className = {'stim', 'rest'};   
                     fv = proc_rSquareSigned(fv);
                     [b,i] = sort(fv.x, 'descend');
-                    if numel(b) > nchanR2
+                    if numel(b) < nchanR2
                        % keep only nchan features with highest r2
-                       % training
-                       xTrF{gg,sbj,tt} = xTrF{gg,sbj,tt}(i(1:nchanR2),:);
-                       % testing
-                       xTstF{gg,sbj,tt} = xTstF{gg,sbj,tt}(i(1:nchanR2),:);
+                       xTrF{gg,sbj,tt} = xTrF{gg,sbj,tt}(i(1:nchanR2),:)
                     end
             end
             
