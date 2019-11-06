@@ -31,19 +31,26 @@ for ss=1:size(param.swdw,1)
     wdw(ss,2)=closestIndex;
 end
 
+%% use only times after onset
+t0 = find(dat.t==0);
+if isempty(t0)
+    t0 = dat.t(1);
+end
+
+
 %% All concentration features in muMol for better precision
 dat.x = dat.x*1e6;
 nchan = size(dat.x,3);
 
 for e=1:size(dat.x, 4)
     %% min
-    FV.x(1,:,1:nchan,e) = min(dat.x(:,:,:,e));
+    FV.x(1,:,1:nchan,e) = min(dat.x(t0:end,:,:,e));
     %% max
-    FV.x(2,:,1:nchan,e) = max(dat.x(:,:,:,e));
+    FV.x(2,:,1:nchan,e) = max(dat.x(t0:end,:,:,e));
     %% peak2peak
-    FV.x(3,:,1:nchan,e) = max(dat.x(:,:,:,e))-min(dat.x(:,:,:,e));
+    FV.x(3,:,1:nchan,e) = max(dat.x(t0:end,:,:,e))-min(dat.x(t0:end,:,:,e));
     %% avg
-    FV.x(4,:,1:nchan,e) = mean(dat.x(:,:,:,e));
+    FV.x(4,:,1:nchan,e) = mean(dat.x(t0:end,:,:,e));
     for ch=1:size(dat.x,3)
         for c=1:size(dat.x,2)
             %% time2peak
@@ -52,21 +59,20 @@ for e=1:size(dat.x, 4)
             switch c
                 % HbO
                 case 1
-                    [m,i] = max(dat.x(:,c,ch,e));
+                    [m,i] = max(dat.x(t0:end,c,ch,e));
                     % HbR
                 case 2
-                    [m,i] = min(dat.x(:,c,ch,e));
+                    [m,i] = min(dat.x(t0:end,c,ch,e));
                     % HbTot
                 case 3
-                    [m,i] = max(dat.x(:,c,ch,e));
+                    [m,i] = max(dat.x(t0:end,c,ch,e));
             end
             FV.x(5,c,ch,e) = dat.t(i);
-            
             % verifying slope
-            %             if ch == 31
-            %                figure
-            %                plot(dat.t,squeeze(dat.x(:,c,ch,e)))
-            %             end
+%             if ch == 31
+%                 figure
+%                 plot(dat.t,squeeze(dat.x(:,c,ch,e)))
+%             end
             %% slope
             for ss=1:size(wdw,1)
                 p=polyfit(dat.t(wdw(ss,1):wdw(ss,2))', squeeze(dat.x(wdw(ss,1):wdw(ss,2),c,ch,e)),1);

@@ -4,8 +4,8 @@ malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.code = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\mayucel\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.dir = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
+    path.save = 'C:\Users\mayucel\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca'; % save directory
     
     %Meryem Laptop
     %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
@@ -14,11 +14,26 @@ if malexflag
 else
     %Alex
     path.code = 'D:\Office\Research\Software - Scripts\Matlab\GLM-BCI'; addpath(genpath(path.code)); % code directory
-    path.dir = 'C:\Users\avolu\Google Drive\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
-    path.save = path.code; % save directory
+    path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
+    path.save = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\PROCESSED_DATA\sbj_opt_tcca\'; % save directory
 end
 
-load([path.save '\FV_results.mat'])
+%% load data
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1_20soffs.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg3_ldrift0_resid1_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift0_resid0_tccap1_20soffs.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid1_tccap2'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2'])
+% load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_20soffs.mat']) % good
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap1.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift0_resid0_tccap2_20soffs.mat'])
+%load([path.save '\FV_results_std_nReg2_ldrift1_resid0_tccap2_hrf_amp50_20soffs.mat'])
+
+% individualized parameters
+load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs'])
+
 
 % load and init BBCI toolbox
 % bbci toolbox paths
@@ -49,8 +64,8 @@ epo.clab = FMclab;
 
 %% for conventional features
 % select features
-% [ min, max, p2p, avg, t2p, slope w1, slope w2]
-fsel = [3,6];
+flab = {'min |', 'max |', 'p2p |', 'avg |', 't2p |', 'slope w1 |', 'slope w2 |'};
+fsel = [4];
 % for all subjects
 FW = {FMdc', FMss, FMcca};
 for gg = 1:3
@@ -71,7 +86,7 @@ for gg = 1:3
                 % train data  (from GLM with trained HRF regressor on seen training data)
                 % append features for hbo and hbr and all channels without SS
                 fvbuf = [];
-                fvbuf = squeeze(FW{gg}{sbj,cvidx}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc));
+                fvbuf = FW{gg}{sbj,cvidx}(fsel,1:2,lstLongAct{sbj},TTM{sbj}.tnridx(tt,:),cc);
                 xTrF{gg,sbj,tt} = [xTrF{gg,sbj,tt} reshape(fvbuf, size(fvbuf,1)*size(fvbuf,2)*size(fvbuf,3),numel(TTM{sbj}.tnridx(tt,:)))];
                 % generate label vector
                 yTrF{gg,sbj,tt}(cc,(cc-1)*numel(TTM{sbj}.tnridx(tt,:))+1:cc*numel(TTM{sbj}.tnridx(tt,:)))=1;
@@ -153,7 +168,7 @@ set(gca,'xtickLabel',{...
     ['GLM SS (' num2str(100*meanaccsF(2),'%2.1f') '%)'], ...
     ['GLM tCCA (' num2str(100*meanaccsF(3),'%2.1f') '%)']})
 ylabel('mean accuracy / subject')
-title('Normal Features')
+title(['Normal Features ' flab{fsel}])
 
 
 
