@@ -217,8 +217,7 @@ featurelab = {'HRF \beta', 'avg', 'avg',  'slope', 'slope'};
 hblab = {'HbO', 'HbR'};
 W = {W_SS, FV_SS, FV_Raw, FV_SS, FV_Raw};
 featidx = [1, 4, 4, 6, 6];
-xlims = {[-2 2.6], [-.6 1.2], [-1.5 1.8], [-.25 .45], [-.7 1]; ...
-    [-2.4 3.1], [-.425 .3], [-.75 .65], [-.18 .14], [-.42 .3]};
+xlims = {[-3 4], [-1 1.5], [-2 2], [-.5 .75], [-.75 1]; [-4 4], [-.4 .4], [-1 1], [-.2 .15], [-.4 .3]};
 hcol{1} = {rgb('Red'), rgb('Red'), rgb('Red'), rgb('Red'), rgb('Red'); ...
     rgb('Blue'), rgb('Blue'), rgb('Blue'), rgb('Blue'), rgb('Blue')}; %stim
 hcol{2} = {rgb('DarkGray'), rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'),rgb('DarkGray'); ...
@@ -247,7 +246,6 @@ for ww = 1:numel(W)
             pd1 = fitdist(W{ww}{1,1}(hb,:)','Normal');
             pd2 = fitdist(W{ww}{2,1}(hb,:)','Normal');
             legend([h1(1), h2(1)], 'STIM Trials','REST Trials')
-
         else
             h1=histfit(squeeze(W{ww}{1,1}(featidx(ww),hb,:)), nbins); % stim
             h1(1).FaceColor = hcol{1}{hb,ww};
@@ -262,7 +260,6 @@ for ww = 1:numel(W)
             pd1 = fitdist(squeeze(W{ww}{1,1}(featidx(ww),hb,:)),'Normal');
             pd2 = fitdist(squeeze(W{ww}{2,1}(featidx(ww),hb,:)),'Normal');
         end
-        axis tight
         xlim(xlims{hb,ww});
         set(gca,'YTickLabel',[]);
         grid on
@@ -270,13 +267,30 @@ for ww = 1:numel(W)
         x_range=-10:0.01:10;
         overlap=cumtrapz(x_range,min([normpdf(x_range,pd1.mu,pd1.sigma)' normpdf(x_range,pd2.mu,pd2.sigma)']'));
         overlap2 = round(overlap(end)*100);
-        title([featurelab{ww} ' overlap: ' num2str(overlap2) '%'])
+        % calculate singed R2
+        fv.y = yTrF{gg,sbj,tt};
+                    fv.className = {'stim', 'rest'};   
+                    fv = proc_rSquareSigned(fv);
+                    
+        title([featurelab{ww} ', ' num2str(overlap2) '%'])
     end
 end
 set(gcf,'Position',[100 100 1200 500])
-%print(gcf, '-dpdf', '-bestfit', 'histogram.pdf')
 
 
+nchanR2 = 25; % number of features to keep
+                    fv.x = xTrF{gg,sbj,tt};
+                    fv.y = yTrF{gg,sbj,tt};
+                    fv.className = {'stim', 'rest'};   
+                    fv = proc_rSquareSigned(fv);
+                    [b,i] = sort(fv.x, 'descend');
+                    if numel(b) > nchanR2
+                       % keep only nchan features with highest r2
+                       % training
+                       xTrF{gg,sbj,tt} = xTrF{gg,sbj,tt}(i(1:nchanR2),:);
+                       % testing
+                       xTstF{gg,sbj,tt} = xTstF{gg,sbj,tt}(i(1:nchanR2),:);
+                    end
                     
 
 %% signed r2 metric (unfinished)

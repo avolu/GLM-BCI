@@ -50,16 +50,16 @@ switch hh
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp100_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
-        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
-        %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+%         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs.mat'])
+%         load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+                load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
     case 2 % 50%
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindrift_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0_tccaIndiv_hrf_amp50_20soffs.mat'])
         %load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_20soffs.mat'])
-        load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
-        load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
-        %         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
+%         load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs.mat'])
+%         load([path.save '\chselInfo_FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp100_mot_corr0_20soffs_ttstchsel.mat'])
+                load([path.save '\FV_results_SSvsNo_ldrift1_resid0stlindriftSWAPPED_1_hrf_amp50_mot_corr0_20soffs_ttstchsel.mat'])
 end
 
 
@@ -78,9 +78,9 @@ chrom = [1 2];
 
 %% channel selection
 chselType = 'r2';
+
 switch chselType
     case {'all', 'r2'} % no selection, take all channels (r2 selection in CV down below)
-        nchanR2 = 10;
         for sbj=sbjl
             for tt = 1:numel(TTM{sbj}.tstidx)
                 for hh = 1:2
@@ -219,11 +219,10 @@ glab = {'W | GLM'};
 
 %% for conventional features
 % select features
-flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope ', 'slope w2 '};
+flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope', 'slope w2 '};
 mlab = {'no GLM', 'GLM'};
-fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6], [6],...
-    [3,4], [3,4], [3,5], [3,5], [3,6], [3,6], [4,5], [4,5], [4,6], [4,6], ...
-    [5,6],[5,6]};
+fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [6], [6],...
+    [1,2], [1,2], [3,4], [3,4], [3,6], [3,6], [4,6], [4,6]};
 %dimensionality of FW:
 %Feature type | chromophore | channels | trials | condition | regressor
 FW = {FMdc', FMss};
@@ -279,14 +278,18 @@ for gg = 1:size(xTrF,1)
             %% R2 based channel selection?
             switch chselType 
                 case 'r2'
+                    nchanR2 = 25; % number of features to keep
                     fv.x = xTrF{gg,sbj,tt};
                     fv.y = yTrF{gg,sbj,tt};
                     fv.className = {'stim', 'rest'};   
                     fv = proc_rSquareSigned(fv);
                     [b,i] = sort(fv.x, 'descend');
-                    if numel(b) < nchanR2
+                    if numel(b) > nchanR2
                        % keep only nchan features with highest r2
-                       xTrF{gg,sbj,tt} = xTrF{gg,sbj,tt}(i(1:nchanR2),:)
+                       % training
+                       xTrF{gg,sbj,tt} = xTrF{gg,sbj,tt}(i(1:nchanR2),:);
+                       % testing
+                       xTstF{gg,sbj,tt} = xTstF{gg,sbj,tt}(i(1:nchanR2),:);
                     end
             end
             
@@ -363,7 +366,7 @@ xlim([0.5, 13.5])
 xticks(1:13)
 bar(noglmacc,'EdgeColor','none','BarWidth',1)
 plot([.5 13.5], [50 50], '--k')
-ylabel('sbj avg accuracy / %')
+ylabel('avg accuracy / %')
 xticks(1:13)
 xticklabels(xtcknoglm)
 % create upper x axis for pval labels
@@ -380,5 +383,6 @@ for i=2:numel(pvlab)
     pvlab{i} = [num2str(xtckglm(i)-xtcknoglm(i)) '  ' pvlab{i}]
 end
 xticklabels(pvlab)
+set(gcf,'Position',[100 100 1000 250])
 
 disp(['Average accuracy improvement GLM vs no GLM: ' num2str(mean(xtckglm(2:end)-xtcknoglm(2:end))) '%'])

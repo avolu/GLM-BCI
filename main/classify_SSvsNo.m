@@ -219,11 +219,10 @@ glab = {'W | GLM'};
 
 %% for conventional features
 % select features
-flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope ', 'slope w2 '};
+flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope', 'slope w2 '};
 mlab = {'no GLM', 'GLM'};
-fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [5], [5], [6], [6],...
-    [3,4], [3,4], [3,5], [3,5], [3,6], [3,6], [4,5], [4,5], [4,6], [4,6], ...
-    [5,6],[5,6]};
+fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [6], [6],...
+    [1,2], [1,2], [3,4], [3,4], [3,6], [3,6], [4,6], [4,6]};
 %dimensionality of FW:
 %Feature type | chromophore | channels | trials | condition | regressor
 FW = {FMdc', FMss};
@@ -348,7 +347,7 @@ hold on
 bar(glmacc,'EdgeColor','none','BarWidth',1)
 plot([.5 13.5], [50 50], '--k')
 ylabel('sbj avg accuracy / %')
-xlim([0.5 13.5])
+xlim([0.5 10.5])
 xticks(1:13)
 xticklabels(xtckglm)
 % create upper x axis for feature type labels
@@ -357,18 +356,18 @@ ax2 = axes('Position',ax1.Position,...
     'XAxisLocation','top',...
     'YAxisLocation','right',...
     'Color','none');
-xlim([0.5, 13.5])
-xticks(1:13)
+xlim([0.5, 10.5])
+xticks(1:10)
 yticks([])
 xticklabels(uflab)
 subplot(2,1,2)
 hold on
-xlim([0.5, 13.5])
-xticks(1:13)
+xlim([0.5, 10.5])
+xticks(1:10)
 bar(noglmacc,'EdgeColor','none','BarWidth',1)
 plot([.5 13.5], [50 50], '--k')
-ylabel('sbj avg accuracy / %')
-xticks(1:13)
+ylabel('avg accuracy / %')
+xticks(1:10)
 xticklabels(xtcknoglm)
 % create upper x axis for pval labels
 ax1 = gca;
@@ -376,13 +375,16 @@ ax2 = axes('Position',ax1.Position,...
     'XAxisLocation','top',...
     'YAxisLocation','right',...
     'Color','none');
-xlim([0.5, 13.5])
-xticks(1:13)
+xlim([0.5, 10.5])
+xticks(1:10)
 yticks([])
 % significance and delta improvement
 for i=2:numel(pvlab)
     pvlab{i} = [num2str(xtckglm(i)-xtcknoglm(i)) '  ' pvlab{i}]
 end
 xticklabels(pvlab)
+set(gcf,'Position',[100 100 1000 250])
+
+% print(gcf, '-dpdf', '-bestfit', 'classires.pdf')
 
 disp(['Average accuracy improvement GLM vs no GLM: ' num2str(mean(xtckglm(2:end)-xtcknoglm(2:end))) '%'])
