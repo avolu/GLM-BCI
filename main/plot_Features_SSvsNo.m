@@ -150,6 +150,8 @@ for ff=1:numel(flist)
     end
 end
 set(gcf,'Position',[100 100 1000 600])
+% display results
+
 
 %% RMSE + CORR
 figure
@@ -180,7 +182,16 @@ for ff=1:2
     end
 end
 set(gcf,'Position',[100 100 500 500])
-
+disp('no GLM:')
+disp(['Corr HbO (mean ± std): ' num2str(mean(abs(squeeze(FV_Raw{cc,rr}(8,1,:))))) '±' num2str(std(abs(squeeze(FV_Raw{cc,rr}(8,1,:))))) ])
+disp(['Corr HbR (mean ± std): ' num2str(mean(abs(squeeze(FV_Raw{cc,rr}(8,2,:))))) '±' num2str(std(abs(squeeze(FV_Raw{cc,rr}(8,2,:))))) ])
+disp(['MSE HbO (mean ± std): ' num2str(mean(squeeze(FV_Raw{cc,rr}(9,1,:)))) '±' num2str(std(squeeze(FV_Raw{cc,rr}(9,1,:)))) ])
+disp(['MSE HbO (mean ± std): ' num2str(mean(squeeze(FV_Raw{cc,rr}(9,2,:)))) '±' num2str(std(squeeze(FV_Raw{cc,rr}(9,2,:)))) ])
+disp('GLM with SS:')
+disp(['Corr HbO (mean ± std): ' num2str(mean(abs(squeeze(FV_SS{cc,rr}(8,1,:))))) '±' num2str(std(abs(squeeze(FV_SS{cc,rr}(8,1,:))))) ])
+disp(['Corr HbR (mean ± std): ' num2str(mean(abs(squeeze(FV_SS{cc,rr}(8,2,:))))) '±' num2str(std(abs(squeeze(FV_SS{cc,rr}(8,2,:))))) ])
+disp(['MSE HbO (mean ± std): ' num2str(mean(squeeze(FV_SS{cc,rr}(9,1,:)))) '±' num2str(std(squeeze(FV_SS{cc,rr}(9,1,:)))) ])
+disp(['MSE HbO (mean ± std): ' num2str(mean(squeeze(FV_SS{cc,rr}(9,2,:)))) '±' num2str(std(squeeze(FV_SS{cc,rr}(9,2,:)))) ])
 
 %% Get HRF Weights from all augmented channels to compare against  ground truth
 %Sort through results and append

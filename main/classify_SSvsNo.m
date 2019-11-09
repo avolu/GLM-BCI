@@ -268,7 +268,7 @@ for gg = 2:numel(fsel)
 end
 
 %% CROSSVALIDATION using rLDA as classifier and all features
-% for all methods/feature types (1> NO GLM, 2> GLM SS, 3> GLM CCA)
+% for all methods/feature types (1> NO GLM, 2> GLM SS
 for gg = 1:size(xTrF,1)
     disp(['CV for all subjects and feature set ' num2str(gg) '...'])
     % for all subjects
@@ -291,6 +291,8 @@ for gg = 1:size(xTrF,1)
                        % testing
                        xTstF{gg,sbj,tt} = xTstF{gg,sbj,tt}(i(1:nchanR2),:);
                     end
+                    % save r2
+                    r2{gg,sbj,tt} = fv.x;
             end
             
             %% training of rLDA
@@ -388,3 +390,68 @@ set(gcf,'Position',[100 100 1000 250])
 % print(gcf, '-dpdf', '-bestfit', 'classires.pdf')
 
 disp(['Average accuracy improvement GLM vs no GLM: ' num2str(mean(xtckglm(2:end)-xtcknoglm(2:end))) '%'])
+
+
+%% look into r2 values
+% calculate average r2 per subject and feature across channels and cv
+% splits
+
+for sbj = sbjl
+    %identify hrf added channels
+    idxkeep{sbj} = find(ismember(lstLongAct{sbj},lstHrfAdd{sbj}));
+    for gg = 1:size(r2,1)
+        % for all feature(-combination)s
+        for tt= 1: numel(TTM{sbj}.tstidx)
+            % first half: HbO
+            avgR2(sbj,gg,tt,1) = mean(abs(r2{gg,sbj,tt}(idxkeep{sbj})));
+            % second half: HbR
+            avgR2(sbj,gg,tt,2) = mean(abs(r2{gg,sbj,tt}(numel(r2{gg,sbj,tt})/2+idxkeep{sbj})));
+            
+        end
+    end
+end
+% remove empty subject
+avgR2(4,:,:,:)=[];
+% average across CV folds
+avgR2pool = squeeze(mean(avgR2,3));
+R2mean = squeeze(mean(avgR2pool,1));
+R2std = squeeze(std(avgR2pool,1));
+%display results
+% features
+flab = {'min ', 'max ', 'p2p ', 'avg ', 't2p ', 'slope', 'slope w2 '};
+fsel = {[], [1], [1], [2], [2], [3], [3], [4], [4], [6], [6],...
+    [1,2], [1,2], [3,4], [3,4], [3,6], [3,6], [4,6], [4,6]};
+%dimensionality of FW:
+disp('******** NO GLM ********')
+disp(['R2 (mean ± std) Min / HbO: ' num2str(R2mean(2,1)) '±' num2str(R2std(2,1))])
+disp(['R2 (mean ± std) Min / HbR: ' num2str(R2mean(2,2)) '±' num2str(R2std(2,2))])
+disp(['R2 (mean ± std) Max / HbO: ' num2str(R2mean(4,1)) '±' num2str(R2std(4,1))])
+disp(['R2 (mean ± std) Max / HbR: ' num2str(R2mean(4,2)) '±' num2str(R2std(4,2))])
+disp(['R2 (mean ± std) P2P / HbO: ' num2str(R2mean(6,1)) '±' num2str(R2std(6,1))])
+disp(['R2 (mean ± std) P2P / HbR: ' num2str(R2mean(6,2)) '±' num2str(R2std(6,2))])
+disp(['R2 (mean ± std) AVG / HbO: ' num2str(R2mean(8,1)) '±' num2str(R2std(8,1))])
+disp(['R2 (mean ± std) AVG / HbR: ' num2str(R2mean(8,2)) '±' num2str(R2std(8,2))])
+disp(['R2 (mean ± std) Slope / HbO: ' num2str(R2mean(10,2)) '±' num2str(R2std(10,1))])
+disp(['R2 (mean ± std) Slope / HbR: ' num2str(R2mean(10,2)) '±' num2str(R2std(10,2))])
+disp('******** GLM SS ********')
+disp(['R2 (mean ± std) Beta / HbO: ' num2str(R2mean(1,1)) '±' num2str(R2std(1,1))])
+disp(['R2 (mean ± std) Beta / HbR: ' num2str(R2mean(1,2)) '±' num2str(R2std(1,2))])
+disp(['R2 (mean ± std) Min / HbO: ' num2str(R2mean(3,1)) '±' num2str(R2std(3,1))])
+disp(['R2 (mean ± std) Min / HbR: ' num2str(R2mean(3,2)) '±' num2str(R2std(3,2))])
+disp(['R2 (mean ± std) Max / HbO: ' num2str(R2mean(5,1)) '±' num2str(R2std(5,1))])
+disp(['R2 (mean ± std) Max / HbR: ' num2str(R2mean(5,2)) '±' num2str(R2std(5,2))])
+disp(['R2 (mean ± std) P2P / HbO: ' num2str(R2mean(7,1)) '±' num2str(R2std(7,1))])
+disp(['R2 (mean ± std) P2P / HbR: ' num2str(R2mean(7,2)) '±' num2str(R2std(7,2))])
+disp(['R2 (mean ± std) AVG / HbO: ' num2str(R2mean(9,1)) '±' num2str(R2std(9,1))])
+disp(['R2 (mean ± std) AVG / HbR: ' num2str(R2mean(9,2)) '±' num2str(R2std(9,2))])
+disp(['R2 (mean ± std) Slope / HbO: ' num2str(R2mean(11,2)) '±' num2str(R2std(11,1))])
+disp(['R2 (mean ± std) Slope / HbR: ' num2str(R2mean(11,2)) '±' num2str(R2std(11,2))])
+
+% ttest for all features and both chromophores (across subjects)
+clear vars h p
+for gg=2:(size(r2,1)-1)/2
+    for cc = 1:2
+       [h(gg,cc), p(gg,cc)] = ttest(squeeze(avgR2pool(:,(gg-1)*2,cc)), squeeze(avgR2pool(:,1+(gg-1)*2,cc)))
+    end  
+end
+
