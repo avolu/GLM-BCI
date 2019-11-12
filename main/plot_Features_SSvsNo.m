@@ -258,6 +258,8 @@ for ww = 1:numel(W)
             pd1 = fitdist(W{ww}{1,1}(hb,:)','Normal');
             pd2 = fitdist(W{ww}{2,1}(hb,:)','Normal');
             legend([h1(1), h2(1)], 'STIM Trials','REST Trials')
+             % calculate cohen's d
+            d(ww,hb) = computeCohen_d(squeeze(W{ww}{1,1}(hb,:)), squeeze(W{ww}{2,1}(hb,:)), 'paired');
 
         else
             h1=histfit(squeeze(W{ww}{1,1}(featidx(ww),hb,:)), nbins); % stim
@@ -272,6 +274,8 @@ for ww = 1:numel(W)
             % calculate gaussian fits
             pd1 = fitdist(squeeze(W{ww}{1,1}(featidx(ww),hb,:)),'Normal');
             pd2 = fitdist(squeeze(W{ww}{2,1}(featidx(ww),hb,:)),'Normal');
+             % calculate cohen's d
+            d(ww,hb) = computeCohen_d(squeeze(W{ww}{1,1}(featidx(ww),hb,:)), squeeze(W{ww}{2,1}(featidx(ww),hb,:)), 'paired');
         end
         axis tight
         xlim(xlims{hb,ww});
@@ -281,7 +285,7 @@ for ww = 1:numel(W)
         x_range=-10:0.01:10;
         overlap=cumtrapz(x_range,min([normpdf(x_range,pd1.mu,pd1.sigma)' normpdf(x_range,pd2.mu,pd2.sigma)']'));
         overlap2 = round(overlap(end)*100);
-        title([featurelab{ww} ' overlap: ' num2str(overlap2) '%'])
+        title([featurelab{ww} ' overlap: ' num2str(overlap2) '%, cohen''s d: ' num2str(d(ww,hb))])
     end
 end
 set(gcf,'Position',[100 100 1200 500])
