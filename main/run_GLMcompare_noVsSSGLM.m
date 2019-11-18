@@ -45,7 +45,7 @@ sbjfolder = {'Subj86', 'Subj91', 'Subj92', 'Subj94', 'Subj95', 'Subj96', 'Subj97
 
 %% Options/Parameter Settings
 rhoSD_ssThresh = 15;  % mm
-flag_save = 1;
+flag_save = 0;
 flag_conc = 1; % if 1 CCA inputs are in conc, if 0 CCA inputs are in intensity
 % results eval parameters
 eval_param.HRFmin = -2;
