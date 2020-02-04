@@ -16,7 +16,7 @@ Please cite this work when using any of the presented methods or code.
 
 **.../lit rev data**
 
-- the data and function for generating the pie-charts in the paper.
+- the data and function for generating the pie-charts in the paper
 
 **.../main**
 
