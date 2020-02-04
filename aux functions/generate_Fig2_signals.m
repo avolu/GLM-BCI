@@ -1,7 +1,7 @@
-cd('\\ad\eng\users\m\a\mayucel\Desktop\BCI_paper_figure');
+% REQUIRES ACCESS TO DATA
 % subj 37!
 load block_design.nirs -mat
-load clmn_bci_paper.mat
+% load clmn_bci_paper.mat
 fq = 1/(t(2)-t(1));
 [dc, dod] = hmrIntensity2Conc( d, SD, fq, [], [], [6  6]);
 pre = 135*fq;
@@ -9,7 +9,7 @@ post = 225*fq;
 ch = 2;
 figure; 
 subplot(7,1,1); plot(t(1:size([pre:post],2)),s(pre:post,:)); hold on;
-plot(t(1:size([pre:post],2)),clmn(pre:post,:),'r')
+% plot(t(1:size([pre:post],2)),clmn(pre:post,:),'r')
 set(gca,'xtick',[],'ytick',[]);title('Representative brain activity');
 
 subplot(7,1,2); plot(t(1:size([pre:post],2)),aux(pre:post,2:4)./max(aux(pre:post,2:4)),'g')
