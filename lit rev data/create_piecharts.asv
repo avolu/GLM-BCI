@@ -4,9 +4,14 @@ malexflag = 1; % user flag
 if malexflag
     %Meryem
     path.dir = 'C:\Users\mayucel\Documents\PROJECTS\CODES\GLM-BCI\lit rev data'; % data directory
+    
+    %Meryem Laptop
+    %     path.code = 'C:\Users\m\Documents\GitHub\GLM-BCI'; addpath(genpath(path.code)); % code directory
+    %     path.dir = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % data directory
+    %     path.save = 'C:\Users\m\Documents\tCCA_GLM_PAPER\FB_RESTING_DATA'; % save directory
 else
     %Alex
-    path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\lit rev data'; % data directory
+    path.dir = 'C:\Users\avolu\Google Drive\GLM_BCI_PAPER\RESTING_DATA'; % data directory
 end
 
 load piechart_data.mat
@@ -24,7 +29,7 @@ cats = categories(GLM(pidx));
 cats{end+1} = 'N/A';
 undef = isundefined(GLM(pidx));
 for ii = 1:numel(cats)-1
-    glm(ii)= sum((GLM(pidx)==cats(ii)));
+   glm(ii)= sum((GLM(pidx)==cats(ii)));
 end
 glm(numel(cats)) = numel(find(undef));
 %flip kalman and no
@@ -47,7 +52,7 @@ cats = categories(SystemicPhysNoiseRemoval(pidx));
 cats{end+1} = 'N/A';
 undef = isundefined(SystemicPhysNoiseRemoval(pidx));
 for ii = 1:numel(cats)-1
-    sysnoise(ii)= sum((SystemicPhysNoiseRemoval(pidx)==cats(ii)));
+   sysnoise(ii)= sum((SystemicPhysNoiseRemoval(pidx)==cats(ii)));
 end
 sysnoise(numel(cats)) = numel(find(undef));
 H = pie(sysnoise)
@@ -65,7 +70,7 @@ cats = categories(ChromophoresusedforFeatures(pidx));
 cats{end+1} = 'N/A';
 undef = isundefined(ChromophoresusedforFeatures(pidx));
 for ii = 1:numel(cats)-1
-    chrom(ii)= sum((ChromophoresusedforFeatures(pidx)==cats(ii)));
+   chrom(ii)= sum((ChromophoresusedforFeatures(pidx)==cats(ii)));
 end
 chrom(numel(cats)) = numel(find(undef));
 H = pie(chrom)
@@ -98,7 +103,7 @@ cats = categories(Classifierused(pidx));
 cats{end+1} = 'N/A';
 undef = isundefined(Classifierused(pidx));
 for ii = 1:numel(cats)-1
-    class(ii)= sum((Classifierused(pidx)==cats(ii)));
+   class(ii)= sum((Classifierused(pidx)==cats(ii)));
 end
 class(numel(cats)) = numel(find(undef));
 H = pie(class)
@@ -116,7 +121,7 @@ cats = categories(ShortSeparationChannelsused(pidx));
 cats{end+1} = 'N/A';
 undef = isundefined(ShortSeparationChannelsused(pidx));
 for ii = 1:numel(cats)-1
-    ssep(ii)= sum((ShortSeparationChannelsused(pidx)==cats(ii)));
+   ssep(ii)= sum((ShortSeparationChannelsused(pidx)==cats(ii)));
 end
 ssep(numel(cats)) = numel(find(undef));
 H = pie(ssep)
