@@ -7,7 +7,8 @@ Please cite this work when using any of the presented methods or code.
 
 ## Directory Structure
 **.../aux functions**
-- xxx
+
+- auxilliary functions 
 
 **.../Homer functions**
 
@@ -30,8 +31,14 @@ Please cite this work when using any of the presented methods or code.
 
 ## How To Reproduce Figures
 The following list points to the analysis scripts that generate the results and figures of the publication:
+- Figure 1:  .../lit rev data/create_piecharts.m
+- Figure 2:  .../aux functions/generate_Fig2_signals.m 
+- Figure 3:  .../lit rev data/create_piecharts.m
 - Figure 7a: .../main/plot_Features_SSvsNo.m
+- Figure 7b: .../aux functions/generate_Fig7_right_panel.m
+- Figure 8:  .../lit rev data/create_piecharts.m
 - Figure 9:  .../main/plot_Features_SSvsNo.m
+- Figure 10:  .../lit rev data/create_piecharts.m
 - Figure 11: .../main/plot_Features_SSvsNo.m
 - Figure 12: .../main/classify_SSvsNo.m.m
 
