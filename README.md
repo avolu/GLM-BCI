@@ -7,7 +7,7 @@ Please cite this work when using any of the presented methods or code.
 
 ## Directory Structure
 **.../aux functions**
-- scripts to estimate hrf for the visual stimulation data using tCCA GLM
+- xxx
 
 **.../Homer functions**
 
@@ -15,11 +15,11 @@ Please cite this work when using any of the presented methods or code.
 
 **.../lit rev data**
 
-- provides resulting data from CrossValidation pipeline described in section 2.3.3. and Figure 3. Needed to plot results figures. Data is in .mat format.
+- the data and function for generating the pie-charts in the paper.
 
 **.../main**
 
-- contains the analysis scripts and functions to generate the main results and corresponding figures from the manuscript. The main function that performs tCCA GLM analysis of ground truth augmented resting state data is *run_CCA.m*. 
+- contains the analysis scripts and functions to generate the main results and corresponding figures from the manuscript. 
 
 **.../sim HRF**
 
@@ -30,8 +30,8 @@ Please cite this work when using any of the presented methods or code.
 
 ## How To Reproduce Figures
 The following list points to the analysis scripts that generate the results and figures of the publication:
-- Figure 7: .../tCCA/eval_and_plot_invAUXresults.m
-- Figure 9: .../tCCA/eval_and_plot_CVresults.m
-- Figure 11: .../block design/results_eval_block.m
-- Figure 12: .../tCCA/eval_and_plot_CVresults.m
+- Figure 7a: .../main/plot_Features_SSvsNo.m
+- Figure 9:  .../main/plot_Features_SSvsNo.m
+- Figure 11: .../main/plot_Features_SSvsNo.m
+- Figure 12: .../main/classify_SSvsNo.m.m
 
