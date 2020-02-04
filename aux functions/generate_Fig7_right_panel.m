@@ -1,4 +1,4 @@
-% run_GLMcompare_noVsSSGLM.m for one subject.
+% First run: run_GLMcompare_noVsSSGLM.m for one subject.
 
   ix = 2
   epoch = 1
