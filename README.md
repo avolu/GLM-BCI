@@ -1,7 +1,7 @@
 # Readme for GLM-BCI Repository
 ## Purpose and Publication
 This README provides a brief documentation for the code and data provided in this repository that is linked with the following [publication](https://www.frontiersin.org/articles/10.3389/fnhum.2020.00030):
-> A. von Lühmann, A. Ortega-Martinez, D.A. Boas and M.A. Yücel, 2020, *Using the General Linear Model to Improve Performance in fNIRS Single Trial Analysis and Classification: A Perspective*, Frontiers in Human Neuroscience, vol. X, no. X, doi: XXX 
+> A. von Lühmann, A. Ortega-Martinez, D.A. Boas and M.A. Yücel, 2020, *Using the General Linear Model to Improve Performance in fNIRS Single Trial Analysis and Classification: A Perspective*, Frontiers in Human Neuroscience, vol. X, no. X, doi: 10.3389/fnhum.2020.00030  
 
 Please cite this work when using any of the presented methods or code.
 
@@ -12,7 +12,7 @@ Please cite this work when using any of the presented methods or code.
 
 **.../Homer functions**
 
-- processing functions from the homer2 toolbox that our scripts are dependent on
+- processing functions from the homer2 toolbox that our scripts are dependent on. The full toolbox can be downloaded [here](https://www.nitrc.org/projects/homer2)
 
 **.../lit rev data**
 
