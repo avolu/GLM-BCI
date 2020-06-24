@@ -40,5 +40,5 @@ The following list points to the analysis scripts that generate the results and 
 - Figure 9:  .../main/plot_Features_SSvsNo.m
 - Figure 10:  .../lit rev data/create_piecharts.m
 - Figure 11: .../main/plot_Features_SSvsNo.m
-- Figure 12: .../main/classify_SSvsNo.m.m   - please note that this code depends on the BBCI toolbox that you can find [here](https://github.com/bbci/bbci_public)
+- Figure 12: .../main/classify_SSvsNo.m   - please note that this code depends on the BBCI toolbox that you can find [here](https://github.com/bbci/bbci_public)
 
